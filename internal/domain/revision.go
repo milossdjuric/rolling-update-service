@@ -2,8 +2,8 @@ package domain
 
 import (
 	"log"
+	"rolling_update_service/internal/utils"
 	"time"
-	"update-service/internal/utils"
 )
 
 type Revision struct {

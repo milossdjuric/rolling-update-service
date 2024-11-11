@@ -2,8 +2,8 @@ package domain
 
 import (
 	"fmt"
+	"rolling_update_service/internal/utils"
 	"slices"
-	"update-service/internal/utils"
 )
 
 var (

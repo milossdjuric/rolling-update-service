@@ -1,8 +1,8 @@
 package domain
 
 import (
+	"rolling_update_service/internal/utils"
 	"time"
-	"update-service/internal/utils"
 )
 
 type Deployment struct {

@@ -3,12 +3,12 @@ package handlers
 import (
 	"context"
 	"log"
+	"rolling_update_service/internal/domain"
+	"rolling_update_service/internal/mappers/proto"
+	"rolling_update_service/internal/utils"
+	"rolling_update_service/internal/worker"
+	"rolling_update_service/pkg/api"
 	"time"
-	"update-service/internal/domain"
-	"update-service/internal/mappers/proto"
-	"update-service/internal/utils"
-	"update-service/internal/worker"
-	"update-service/pkg/api"
 
 	"github.com/docker/docker/client"
 	"github.com/nats-io/nats.go"

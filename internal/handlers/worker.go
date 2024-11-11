@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"rolling_update_service/internal/domain"
+	"rolling_update_service/internal/worker"
+	"rolling_update_service/pkg/messaging/nats"
 	"time"
-	"update-service/internal/domain"
-	"update-service/internal/worker"
-	"update-service/pkg/messaging/nats"
 
 	natsgo "github.com/nats-io/nats.go"
 	"google.golang.org/grpc/codes"

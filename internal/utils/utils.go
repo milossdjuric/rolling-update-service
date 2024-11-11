@@ -3,8 +3,8 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"rolling_update_service/internal/worker"
 	"strings"
-	"update-service/internal/worker"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"

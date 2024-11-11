@@ -1,9 +1,9 @@
 package proto
 
 import (
-	"update-service/internal/domain"
-	mapper "update-service/internal/mappers/proto"
-	"update-service/pkg/api"
+	"rolling_update_service/internal/domain"
+	mapper "rolling_update_service/internal/mappers/proto"
+	"rolling_update_service/pkg/api"
 
 	"google.golang.org/protobuf/proto"
 )

@@ -1,4 +1,4 @@
-module update-service
+module rolling_update_service
 
 go 1.22.6
 

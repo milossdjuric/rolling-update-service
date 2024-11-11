@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"rolling_update_service/internal/domain"
+	"rolling_update_service/internal/utils"
+	"rolling_update_service/internal/worker"
 	"sort"
 	"sync"
 	"time"
-	"update-service/internal/domain"
-	"update-service/internal/utils"
-	"update-service/internal/worker"
 )
 
 func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Deployment) {

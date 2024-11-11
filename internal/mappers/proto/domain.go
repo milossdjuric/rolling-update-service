@@ -1,9 +1,9 @@
 package proto
 
 import (
-	"update-service/internal/domain"
-	"update-service/internal/utils"
-	"update-service/pkg/api"
+	"rolling_update_service/internal/domain"
+	"rolling_update_service/internal/utils"
+	"rolling_update_service/pkg/api"
 )
 
 func DeploymentToDomain(deployment *api.Deployment) (*domain.Deployment, error) {

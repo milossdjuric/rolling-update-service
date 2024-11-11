@@ -3,9 +3,9 @@ package handlers
 import (
 	"context"
 	"log"
+	"rolling_update_service/internal/domain"
+	"rolling_update_service/internal/utils"
 	"time"
-	"update-service/internal/domain"
-	"update-service/internal/utils"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
