@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+option go_package = "update-service/pkg/api";
+
+package proto;
+
+import "update-service-model.proto";
+
+service UpdateService {
+    rpc PingFunction(Ping) returns (Pong) {}          
+    rpc AddDeployment(AddDeploymentReq) returns (AddDeploymentResp) {}
+    rpc GetDeployment(GetDeploymentReq) returns (GetDeploymentResp) {}
+    rpc GetDeploymentOwnedRevisions(GetDeploymentOwnedRevisionsReq) returns (GetDeploymentOwnedRevisionsResp) {}
+    rpc RollbackRevision(RollbackRevisionReq) returns (RollbackRevisionResp) {}
+}
+
+message AddDeploymentReq {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+    map<string, string> labels = 4;
+    message Spec {
+        map<string, string> selectorLabels = 1;
+        int64 appCount = 2;
+        optional int64 revisionLimit = 3;
+        DeploymentStrategy strategy = 4;
+        message App {
+            string name = 1;
+            map<string, double> quotas = 2;
+            SeccompProfile profile = 3;
+            string seccompDefinitionStrategy = 4;
+        }
+        App app = 5;
+        int64 minReadySeconds = 6;
+        int64 deadlineExceeded = 7;
+        optional bool automaticRollback = 8;
+    }
+    Spec spec = 5;
+}
+
+message AddDeploymentResp {}
+
+message RollbackRevisionReq {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+    string revisionName = 4;
+}
+
+message RollbackRevisionResp {}
+
+message PauseDeploymentReq {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+}
+
+message PauseDeploymentResp {}
+
+message UnpauseDeploymentReq {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+}
+
+message UnpauseDeploymentResp {}
+
+message GetDeploymentReq {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+}
+
+message GetDeploymentResp {
+    Deployment deployment = 1;
+}
+
+message GetDeploymentOwnedRevisionsReq{
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+}
+
+message GetDeploymentOwnedRevisionsResp{
+    repeated Revision revisions = 1;
+}
+
+message Ping {
+    string message = 1;
+}       
+
+message Pong {
+    string message = 1;
+}

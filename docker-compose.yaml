@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  update_service:
+    container_name: update_service
+    build:
+      context: ../
+      dockerfile: ./update_service/Dockerfile
+    ports:
+      - ${UPDATE_SERVICE_LISTEN_PORT}:${UPDATE_SERVICE_LISTEN_PORT}
+    environment:
+      - UPDATE_SERVICE_ADDRESS=${UPDATE_SERVICE_HOSTNAME}:${UPDATE_SERVICE_PORT}
+      - UPDATE_SERVICE_ETCD_ADDRESS=${UPDATE_SERVICE_ETCD_ADDRESS}
+      - NATS_HOSTNAME=${NATS_HOSTNAME}
+      - NATS_PORT=${NATS_PORT}
+      - DOCKER_CLIENT_ADDRESS=${DOCKER_CLIENT_ADDRESS}
+      - DOCKER_CONTAINER_IMAGE=${DOCKER_CLIENT_IMAGE}
+    restart: "no"
+    networks:
+      - update_network
+    depends_on:
+      - nats
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  update_service_etcd:
+    image: 'bitnami/etcd:latest'
+    container_name: update_service_etcd
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://${UPDATE_SERVICE_ETCD_ADDRESS}
+    volumes:
+      - us_etcd_data:/bitnami/etcd
+    networks: 
+      - update_network
+    ports:
+      - "2379:2379"
+
+  nats:
+    image: nats:latest
+    container_name: nats
+    expose:
+      - ${NATS_PORT}
+    ports:
+      - ${NATS_PORT}:${NATS_PORT}
+      - 8222:8222
+    hostname: ${NATS_HOSTNAME}
+    restart: on-failure
+    networks:
+      - update_network
+
+volumes:
+  us_etcd_data:
+    driver: local
+
+networks:
+  update_network:   
+    driver: bridge

@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+option go_package = "update-service/pkg/api";
+
+package proto;
+
+message Deployment {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+    map<string, string> labels = 4;
+    DeploymentSpec spec = 5;
+    DeploymentStatus status = 6;
+}
+
+message DeploymentSpec {
+    map<string, string> selectorLabels = 1;
+    int64 appCount = 2;
+    int64 revisionLimit = 3;
+    map<string, double> resourceQuotas = 4;
+    DeploymentStrategy strategy = 5;
+    AppSpec appSpec = 6;
+    int64 minReadySeconds = 7;
+    int64 deadlineExceeded = 8;
+    bool automaticRollback = 9;
+}
+
+message DeploymentStatus {
+    int64 totalAppCount = 1;
+    int64 updatedAppCount = 2;
+    int64 readyAppCount = 3;
+    int64 availableAppCount = 4;
+    int64 unavailableAppCount = 5;
+    map<string, DeploymentState> states = 6;
+    bool paused = 7;
+}
+
+message DeploymentStrategy{
+    string type = 1;
+    optional RollingUpdate rollingUpdate = 2;
+}
+
+message RollingUpdate{
+    optional int64 maxUnavailable = 1;
+    optional int64 maxSurge = 2;
+}
+
+message DeploymentState{
+    string type = 1;
+    bool active = 2;
+    int64 lastUpdateTimestamp = 3;
+    int64 lastTransitionTimestamp = 4;
+    string message = 5;
+}
+
+message Revision{
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+    int64 creationTimestamp = 4;
+    map<string, string> labels = 5;
+    RevisionSpec spec = 6;
+}
+
+message RevisionSpec{
+    map<string, string> selectorLabels = 1;
+    AppSpec appSpec = 2;
+}
+
+message AppSpec {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+    map<string, string> selectorLabels = 4;
+    map<string, double> quotas = 5;
+    SeccompProfile seccompProfile = 6;
+    string seccompDefinitionStrategy = 7;
+}
+
+message SeccompProfile {
+    string version = 1;
+    string default_action = 3;
+    repeated SyscallRule syscalls = 4;
+}
+  
+message SyscallRule {   
+    repeated string names = 1; 
+    string action = 2;         
+}
