@@ -1,8 +1,9 @@
 package domain
 
 import (
-	"rolling_update_service/internal/utils"
 	"time"
+
+	"github.com/milossdjuric/rolling_update_service/internal/utils"
 )
 
 type Deployment struct {

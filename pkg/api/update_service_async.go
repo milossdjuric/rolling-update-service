@@ -3,8 +3,9 @@ package api
 import (
 	"fmt"
 	"log"
-	"rolling_update_service/pkg/messaging"
-	"rolling_update_service/pkg/messaging/nats"
+
+	"github.com/milossdjuric/rolling_update_service/pkg/messaging"
+	"github.com/milossdjuric/rolling_update_service/pkg/messaging/nats"
 
 	natsgo "github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"

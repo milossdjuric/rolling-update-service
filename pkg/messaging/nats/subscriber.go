@@ -2,8 +2,8 @@ package nats
 
 import (
 	"errors"
-	"rolling_update_service/pkg/messaging"
 
+	"github.com/milossdjuric/rolling_update_service/pkg/messaging"
 	"github.com/nats-io/nats.go"
 )
 

@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"rolling_update_service/internal/domain"
-	"rolling_update_service/internal/utils"
+
+	"github.com/milossdjuric/rolling_update_service/internal/domain"
+	"github.com/milossdjuric/rolling_update_service/internal/utils"
 
 	etcd "go.etcd.io/etcd/client/v3"
 )

@@ -1,4 +1,4 @@
-module rolling_update_service
+module github.com/milossdjuric/rolling_update_service
 
 go 1.22.6
 

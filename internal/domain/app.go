@@ -2,8 +2,9 @@ package domain
 
 import (
 	"fmt"
-	"rolling_update_service/internal/utils"
 	"slices"
+
+	"github.com/milossdjuric/rolling_update_service/internal/utils"
 )
 
 var (

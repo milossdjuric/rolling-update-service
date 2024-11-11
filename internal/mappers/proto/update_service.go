@@ -2,9 +2,10 @@ package proto
 
 import (
 	"log"
-	"rolling_update_service/internal/domain"
-	"rolling_update_service/internal/utils"
-	"rolling_update_service/pkg/api"
+
+	"github.com/milossdjuric/rolling_update_service/internal/domain"
+	"github.com/milossdjuric/rolling_update_service/internal/utils"
+	"github.com/milossdjuric/rolling_update_service/pkg/api"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

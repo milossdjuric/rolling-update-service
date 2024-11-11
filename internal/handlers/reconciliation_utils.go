@@ -3,12 +3,12 @@ package handlers
 import (
 	"context"
 	"log"
-	"rolling_update_service/internal/domain"
-	"rolling_update_service/internal/utils"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/milossdjuric/rolling_update_service/internal/domain"
+	"github.com/milossdjuric/rolling_update_service/internal/utils"
 )
 
 func CountMatchingAppsForRevisons(revision *domain.Revision, apps []*domain.App) int64 {
