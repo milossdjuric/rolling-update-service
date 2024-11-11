@@ -87,3 +87,12 @@ message SyscallRule {
     repeated string names = 1; 
     string action = 2;         
 }
+
+message ApplyAppOperationCommand{
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+    string operation = 4;
+    map<string, string> selectorLabels = 5;
+    int64 minReadySeconds = 6;
+}

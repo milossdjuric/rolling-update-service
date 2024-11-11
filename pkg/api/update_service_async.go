@@ -54,14 +54,14 @@ func (c *UpdateServiceAsyncClient) ReceiveAppOperation(handler ApplyAppOperation
 			log.Println(err)
 			return
 		}
-		err = handler(cmd.OrgId, cmd.Namespace, cmd.Name, cmd.SelectorLabels, cmd.MinReadySeconds)
+		err = handler(cmd.OrgId, cmd.Namespace, cmd.Name, cmd.Operation, cmd.SelectorLabels, cmd.MinReadySeconds)
 		if err != nil {
 			log.Println(err)
 		}
 	})
 }
 
-type ApplyAppOperationHandler func(orgId, namespace, name string, selectorLabels map[string]string, minReadySeconds int64) error
+type ApplyAppOperationHandler func(orgId, namespace, name, operation string, selectorLabels map[string]string, minReadySeconds int64) error
 
 // func (c *UpdateServiceAsyncClient) StartApp(name string, selectorLabels map[string]string) error {
 // 	cmd := &StartAppCommand{
