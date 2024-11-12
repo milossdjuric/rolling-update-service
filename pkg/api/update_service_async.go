@@ -12,8 +12,8 @@ import (
 )
 
 type UpdateServiceAsyncClient struct {
-	subscriber messaging.Subsriber
-	publisher  messaging.Publisher
+	Subscriber messaging.Subsriber
+	Publisher  messaging.Publisher
 }
 
 func NewUpdateServiceAsyncClient(address, nodeId string) (*UpdateServiceAsyncClient, error) {
@@ -31,13 +31,13 @@ func NewUpdateServiceAsyncClient(address, nodeId string) (*UpdateServiceAsyncCli
 		return nil, err
 	}
 	return &UpdateServiceAsyncClient{
-		subscriber: subscriber,
-		publisher:  publisher,
+		Subscriber: subscriber,
+		Publisher:  publisher,
 	}, nil
 }
 
 func (c *UpdateServiceAsyncClient) GracefulStop() {
-	err := c.subscriber.Unsubscribe()
+	err := c.Subscriber.Unsubscribe()
 	if err != nil {
 		log.Println("Error unsubscribing: ", err)
 	}
@@ -48,7 +48,7 @@ func Subject(nodeId string) string {
 }
 
 func (c *UpdateServiceAsyncClient) ReceiveAppOperation(handler ApplyAppOperationHandler) error {
-	return c.subscriber.Subscribe(func(msg []byte, replySubject string) {
+	return c.Subscriber.Subscribe(func(msg []byte, replySubject string) {
 		cmd := &ApplyAppOperationCommand{}
 		err := proto.Unmarshal(msg, cmd)
 		if err != nil {
