@@ -96,3 +96,8 @@ message ApplyAppOperationCommand{
     map<string, string> selectorLabels = 5;
     int64 minReadySeconds = 6;
 }
+
+message App{
+    string name = 1;
+    map<string, string> selectorLabels = 2;
+}

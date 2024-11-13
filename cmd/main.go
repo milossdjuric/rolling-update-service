@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	magnetarapi "github.com/c12s/magnetar/pkg/api"
 	"github.com/docker/docker/client"
 	"github.com/milossdjuric/rolling_update_service/internal/handlers"
 	"github.com/milossdjuric/rolling_update_service/internal/marshallers/proto"
@@ -16,6 +17,7 @@ import (
 	"github.com/nats-io/nats.go"
 	etcd "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -48,6 +50,13 @@ func main() {
 	}
 	defer dockerClient.Close()
 
+	connMagnetar, err := grpc.NewClient(os.Getenv("MAGNETAR_ADDRESS"), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer connMagnetar.Close()
+	magnetar := magnetarapi.NewMagnetarClient(connMagnetar)
+
 	deploymentMarshaller := proto.NewProtoDeploymentMarshaller()
 	deploymentRepo, err := repos.NewDeploymentEtcdRepo(etcdClient, deploymentMarshaller)
 	if err != nil {
@@ -60,7 +69,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	updateService := handlers.NewUpdateServiceGrpcHandler(deploymentRepo, revisionRepo, natsConn, dockerClient)
+	updateService := handlers.NewUpdateServiceGrpcHandler(deploymentRepo, revisionRepo, natsConn, dockerClient, magnetar)
 
 	server := grpc.NewServer()
 	api.RegisterUpdateServiceServer(server, updateService)

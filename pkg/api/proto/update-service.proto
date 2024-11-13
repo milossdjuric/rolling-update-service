@@ -92,3 +92,54 @@ message Ping {
 message Pong {
     string message = 1;
 }
+
+// message StartAppReq{
+//   string name = 1;
+//   map<string, string> selectorLabels = 2;
+// }
+
+// message StopAppReq{
+//   string name = 1;
+// }
+
+// message QueryAppReq{
+//   string prefix = 1;
+//   map<string, string> selectorLabels = 2;
+// }
+
+// message HealthCheckAppReq{
+//   string name = 1;
+// }
+
+// message AvailabilityCheckAppReq{
+//   string name = 1;
+//   int64 minReadySeconds = 2;
+// }
+
+message StartAppResp{
+  bool success = 1;
+  repeated string errorMessages = 2;
+}
+
+message StopAppResp{
+  bool success = 1;
+  repeated string errorMessages = 2;
+}
+
+message QueryAppResp{
+  bool success = 1;
+  repeated string errorMessages = 2;
+  repeated App apps = 3;
+}
+
+message HealthCheckAppResp{
+  bool success = 1;
+  repeated string errorMessages = 2;
+  bool healthy = 3;
+}
+
+message AvailabilityCheckAppResp{
+  bool success = 1;
+  repeated string errorMessages = 2;
+  bool available = 3;
+}

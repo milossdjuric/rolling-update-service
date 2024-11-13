@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	magnetarapi "github.com/c12s/magnetar/pkg/api"
 	"github.com/docker/docker/client"
 	"github.com/milossdjuric/rolling_update_service/internal/domain"
 	"github.com/milossdjuric/rolling_update_service/internal/mappers/proto"
@@ -23,15 +24,17 @@ type UpdateServiceGrpcHandler struct {
 	natsConn       *nats.Conn
 	workerMap      *worker.WorkerMap
 	dockerClient   *client.Client
+	magnetar       magnetarapi.MagnetarClient
 }
 
-func NewUpdateServiceGrpcHandler(deploymentRepo domain.DeploymentRepo, revisionRepo domain.RevisionRepo, natsConn *nats.Conn, dockerClient *client.Client) api.UpdateServiceServer {
+func NewUpdateServiceGrpcHandler(deploymentRepo domain.DeploymentRepo, revisionRepo domain.RevisionRepo, natsConn *nats.Conn, dockerClient *client.Client, magnetarClient magnetarapi.MagnetarClient) api.UpdateServiceServer {
 	return &UpdateServiceGrpcHandler{
 		deploymentRepo: deploymentRepo,
 		revisionRepo:   revisionRepo,
 		natsConn:       natsConn,
 		workerMap:      worker.NewWorkerMap(),
 		dockerClient:   dockerClient,
+		magnetar:       magnetarClient,
 	}
 }
 

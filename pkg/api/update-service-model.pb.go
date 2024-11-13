@@ -944,6 +944,61 @@ func (x *ApplyAppOperationCommand) GetMinReadySeconds() int64 {
 	return 0
 }
 
+type App struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name           string            `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	SelectorLabels map[string]string `protobuf:"bytes,2,rep,name=selectorLabels,proto3" json:"selectorLabels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *App) Reset() {
+	*x = App{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_update_service_model_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *App) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*App) ProtoMessage() {}
+
+func (x *App) ProtoReflect() protoreflect.Message {
+	mi := &file_update_service_model_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use App.ProtoReflect.Descriptor instead.
+func (*App) Descriptor() ([]byte, []int) {
+	return file_update_service_model_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *App) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *App) GetSelectorLabels() map[string]string {
+	if x != nil {
+		return x.SelectorLabels
+	}
+	return nil
+}
+
 var File_update_service_model_proto protoreflect.FileDescriptor
 
 var file_update_service_model_proto_rawDesc = []byte{
@@ -1151,9 +1206,20 @@ var file_update_service_model_proto_rawDesc = []byte{
 	0x63, 0x74, 0x6f, 0x72, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12,
 	0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65,
 	0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x42, 0x18, 0x5a, 0x16, 0x75,
-	0x70, 0x64, 0x61, 0x74, 0x65, 0x2d, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2f, 0x70, 0x6b,
-	0x67, 0x2f, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0xa4, 0x01, 0x0a, 0x03,
+	0x41, 0x70, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x46, 0x0a, 0x0e, 0x73, 0x65, 0x6c, 0x65, 0x63,
+	0x74, 0x6f, 0x72, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x1e, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x70, 0x70, 0x2e, 0x53, 0x65, 0x6c, 0x65,
+	0x63, 0x74, 0x6f, 0x72, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52,
+	0x0e, 0x73, 0x65, 0x6c, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x1a,
+	0x41, 0x0a, 0x13, 0x53, 0x65, 0x6c, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x4c, 0x61, 0x62, 0x65, 0x6c,
+	0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75,
+	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02,
+	0x38, 0x01, 0x42, 0x18, 0x5a, 0x16, 0x75, 0x70, 0x64, 0x61, 0x74, 0x65, 0x2d, 0x73, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1168,7 +1234,7 @@ func file_update_service_model_proto_rawDescGZIP() []byte {
 	return file_update_service_model_proto_rawDescData
 }
 
-var file_update_service_model_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_update_service_model_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_update_service_model_proto_goTypes = []any{
 	(*Deployment)(nil),               // 0: proto.Deployment
 	(*DeploymentSpec)(nil),           // 1: proto.DeploymentSpec
@@ -1182,41 +1248,44 @@ var file_update_service_model_proto_goTypes = []any{
 	(*SeccompProfile)(nil),           // 9: proto.SeccompProfile
 	(*SyscallRule)(nil),              // 10: proto.SyscallRule
 	(*ApplyAppOperationCommand)(nil), // 11: proto.ApplyAppOperationCommand
-	nil,                              // 12: proto.Deployment.LabelsEntry
-	nil,                              // 13: proto.DeploymentSpec.SelectorLabelsEntry
-	nil,                              // 14: proto.DeploymentSpec.ResourceQuotasEntry
-	nil,                              // 15: proto.DeploymentStatus.StatesEntry
-	nil,                              // 16: proto.Revision.LabelsEntry
-	nil,                              // 17: proto.RevisionSpec.SelectorLabelsEntry
-	nil,                              // 18: proto.AppSpec.SelectorLabelsEntry
-	nil,                              // 19: proto.AppSpec.QuotasEntry
-	nil,                              // 20: proto.ApplyAppOperationCommand.SelectorLabelsEntry
+	(*App)(nil),                      // 12: proto.App
+	nil,                              // 13: proto.Deployment.LabelsEntry
+	nil,                              // 14: proto.DeploymentSpec.SelectorLabelsEntry
+	nil,                              // 15: proto.DeploymentSpec.ResourceQuotasEntry
+	nil,                              // 16: proto.DeploymentStatus.StatesEntry
+	nil,                              // 17: proto.Revision.LabelsEntry
+	nil,                              // 18: proto.RevisionSpec.SelectorLabelsEntry
+	nil,                              // 19: proto.AppSpec.SelectorLabelsEntry
+	nil,                              // 20: proto.AppSpec.QuotasEntry
+	nil,                              // 21: proto.ApplyAppOperationCommand.SelectorLabelsEntry
+	nil,                              // 22: proto.App.SelectorLabelsEntry
 }
 var file_update_service_model_proto_depIdxs = []int32{
-	12, // 0: proto.Deployment.labels:type_name -> proto.Deployment.LabelsEntry
+	13, // 0: proto.Deployment.labels:type_name -> proto.Deployment.LabelsEntry
 	1,  // 1: proto.Deployment.spec:type_name -> proto.DeploymentSpec
 	2,  // 2: proto.Deployment.status:type_name -> proto.DeploymentStatus
-	13, // 3: proto.DeploymentSpec.selectorLabels:type_name -> proto.DeploymentSpec.SelectorLabelsEntry
-	14, // 4: proto.DeploymentSpec.resourceQuotas:type_name -> proto.DeploymentSpec.ResourceQuotasEntry
+	14, // 3: proto.DeploymentSpec.selectorLabels:type_name -> proto.DeploymentSpec.SelectorLabelsEntry
+	15, // 4: proto.DeploymentSpec.resourceQuotas:type_name -> proto.DeploymentSpec.ResourceQuotasEntry
 	3,  // 5: proto.DeploymentSpec.strategy:type_name -> proto.DeploymentStrategy
 	8,  // 6: proto.DeploymentSpec.appSpec:type_name -> proto.AppSpec
-	15, // 7: proto.DeploymentStatus.states:type_name -> proto.DeploymentStatus.StatesEntry
+	16, // 7: proto.DeploymentStatus.states:type_name -> proto.DeploymentStatus.StatesEntry
 	4,  // 8: proto.DeploymentStrategy.rollingUpdate:type_name -> proto.RollingUpdate
-	16, // 9: proto.Revision.labels:type_name -> proto.Revision.LabelsEntry
+	17, // 9: proto.Revision.labels:type_name -> proto.Revision.LabelsEntry
 	7,  // 10: proto.Revision.spec:type_name -> proto.RevisionSpec
-	17, // 11: proto.RevisionSpec.selectorLabels:type_name -> proto.RevisionSpec.SelectorLabelsEntry
+	18, // 11: proto.RevisionSpec.selectorLabels:type_name -> proto.RevisionSpec.SelectorLabelsEntry
 	8,  // 12: proto.RevisionSpec.appSpec:type_name -> proto.AppSpec
-	18, // 13: proto.AppSpec.selectorLabels:type_name -> proto.AppSpec.SelectorLabelsEntry
-	19, // 14: proto.AppSpec.quotas:type_name -> proto.AppSpec.QuotasEntry
+	19, // 13: proto.AppSpec.selectorLabels:type_name -> proto.AppSpec.SelectorLabelsEntry
+	20, // 14: proto.AppSpec.quotas:type_name -> proto.AppSpec.QuotasEntry
 	9,  // 15: proto.AppSpec.seccompProfile:type_name -> proto.SeccompProfile
 	10, // 16: proto.SeccompProfile.syscalls:type_name -> proto.SyscallRule
-	20, // 17: proto.ApplyAppOperationCommand.selectorLabels:type_name -> proto.ApplyAppOperationCommand.SelectorLabelsEntry
-	5,  // 18: proto.DeploymentStatus.StatesEntry.value:type_name -> proto.DeploymentState
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	21, // 17: proto.ApplyAppOperationCommand.selectorLabels:type_name -> proto.ApplyAppOperationCommand.SelectorLabelsEntry
+	22, // 18: proto.App.selectorLabels:type_name -> proto.App.SelectorLabelsEntry
+	5,  // 19: proto.DeploymentStatus.StatesEntry.value:type_name -> proto.DeploymentState
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_update_service_model_proto_init() }
@@ -1369,6 +1438,18 @@ func file_update_service_model_proto_init() {
 				return nil
 			}
 		}
+		file_update_service_model_proto_msgTypes[12].Exporter = func(v any, i int) any {
+			switch v := v.(*App); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	file_update_service_model_proto_msgTypes[3].OneofWrappers = []any{}
 	file_update_service_model_proto_msgTypes[4].OneofWrappers = []any{}
@@ -1378,7 +1459,7 @@ func file_update_service_model_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_update_service_model_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
