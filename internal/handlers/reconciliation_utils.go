@@ -322,7 +322,7 @@ func (u *UpdateServiceGrpcHandler) StartStarContainer(revisionName string, selec
 			log.Printf("Failed to unmarshal response: %v", err)
 			return err
 		}
-		if len(resp.ErrorMessages) > 0 {
+		if resp.ErrorMessages != "" {
 			log.Printf("Error messages: %v", resp.ErrorMessages)
 			return fmt.Errorf("response error messages: %v", err)
 		}
@@ -389,7 +389,7 @@ func (u *UpdateServiceGrpcHandler) StopStarContainer(name string, extraArgs ...s
 			log.Printf("Failed to unmarshal response: %v", err)
 			return err
 		}
-		if len(resp.ErrorMessages) > 0 {
+		if resp.ErrorMessages != "" {
 			log.Printf("Error messages: %v", resp.ErrorMessages)
 			return fmt.Errorf("response error messages: %v", err)
 		}
@@ -460,7 +460,7 @@ func (u *UpdateServiceGrpcHandler) QueryStarContainers(prefix string, selectorLa
 			log.Printf("Failed to unmarshal response: %v", err)
 			return nil, err
 		}
-		if len(resp.ErrorMessages) > 0 {
+		if resp.ErrorMessages != "" {
 			log.Printf("Error messages: %v", resp.ErrorMessages)
 			return nil, fmt.Errorf("response error messages: %v", err)
 		}
@@ -530,7 +530,7 @@ func (u *UpdateServiceGrpcHandler) HealthCheckStarContainer(name string, extraAr
 			log.Printf("Failed to unmarshal response: %v", err)
 			return false, err
 		}
-		if len(resp.ErrorMessages) > 0 {
+		if resp.ErrorMessages != "" {
 			log.Printf("Error messages: %v", resp.ErrorMessages)
 			return false, fmt.Errorf("response error messages: %v", err)
 		}
@@ -597,7 +597,7 @@ func (u *UpdateServiceGrpcHandler) AvailabilityCheckStarContainer(name string, m
 			log.Printf("Failed to unmarshal response: %v", err)
 			return false, err
 		}
-		if len(resp.ErrorMessages) > 0 {
+		if resp.ErrorMessages != "" {
 			log.Printf("Error messages: %v", resp.ErrorMessages)
 			return false, fmt.Errorf("response error messages: %v", err)
 		}
