@@ -359,7 +359,7 @@ func SyscallRuleFromDomain(syscallRule domain.SyscallRule) (*api.SyscallRules, e
 	return resp, nil
 }
 
-func ProfileToDomain(profile *api.SeccompProfile) (domain.SeccompProfile, error) {
+func ProfileToDomain(profile *api.SeccompProf) (domain.SeccompProfile, error) {
 
 	resp := domain.SeccompProfile{
 		Version:       profile.Version,
@@ -377,9 +377,9 @@ func ProfileToDomain(profile *api.SeccompProfile) (domain.SeccompProfile, error)
 	return resp, nil
 }
 
-func ProfileFromDomain(profile domain.SeccompProfile) (*api.SeccompProfile, error) {
+func ProfileFromDomain(profile domain.SeccompProfile) (*api.SeccompProf, error) {
 
-	resp := &api.SeccompProfile{
+	resp := &api.SeccompProf{
 		Version:       profile.Version,
 		DefaultAction: profile.DefaultAction,
 		Syscalls:      make([]*api.SyscallRules, len(profile.Syscalls)),

@@ -4,6 +4,8 @@ option go_package = "update-service/pkg/api";
 
 package proto;
 
+// import "pkg/api/proto/meridian.proto";
+
 message Deployment {
     string name = 1;
     string namespace = 2;
@@ -73,11 +75,11 @@ message AppSpec {
     string orgId = 3;
     map<string, string> selectorLabels = 4;
     map<string, double> quotas = 5;
-    SeccompProfile seccompProfile = 6;
+    SeccompProf seccompProfile = 6;
     string seccompDefinitionStrategy = 7;
 }
 
-message SeccompProfile {    
+message SeccompProf {    
     string version = 1;
     string default_action = 3;
     repeated SyscallRules syscalls = 4;

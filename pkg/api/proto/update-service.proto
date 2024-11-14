@@ -27,7 +27,7 @@ message AddDeploymentReq {
         message App {
             string name = 1;
             map<string, double> quotas = 2;
-            SeccompProfile profile = 3;
+            SeccompProf profile = 3;
             string seccompDefinitionStrategy = 4;
         }
         App app = 5;
