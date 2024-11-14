@@ -376,7 +376,7 @@ func (u *UpdateServiceGrpcHandler) ReconcileOldRevisions(d *domain.Deployment, n
 	log.Println("RECONCILE OLD REVISIONS: stop unavailable apps CHECKPOINT")
 
 	//Scale down unavailable/unhealthy old apps
-	err := u.StopApps(int(maxScaledDown), oldUnavailableApps, u.StopDockerContainer, extraArgs...)
+	err := u.StopApps(int(maxScaledDown), oldUnavailableApps, u.StopStarContainer, extraArgs...)
 	if err != nil {
 		log.Println("RECONCILE OLD REVISIONS: stop unavailable apps error:", err)
 		return err
@@ -452,7 +452,7 @@ func (u *UpdateServiceGrpcHandler) ScaleRevision(d *domain.Deployment, revision 
 		//Scale down
 		scaleDirection = worker.ScaleDown
 		log.Printf("Scaling %s %s, Old size: %d, New size: %d", revision.Name, scaleDirection, oldSize, newSize)
-		err := u.StopApps(int(oldSize-newSize), apps, u.StopDockerContainer, extraArgs...)
+		err := u.StopApps(int(oldSize-newSize), apps, u.StopStarContainer, extraArgs...)
 		if err != nil {
 			return err
 		}
@@ -695,7 +695,7 @@ func (u *UpdateServiceGrpcHandler) GetApps(d *domain.Deployment, newRevision *do
 		waitGroup.Add(1)
 		go func(revision domain.Revision) {
 			defer waitGroup.Done()
-			revisionApps, err := u.GetRevisionOwnedApps(d, &revision, u.QueryDockerContainer, nodeIds...)
+			revisionApps, err := u.GetRevisionOwnedApps(d, &revision, u.QueryStarContainers, nodeIds...)
 			if err != nil {
 				return
 			}
@@ -730,12 +730,12 @@ func (u *UpdateServiceGrpcHandler) GetApps(d *domain.Deployment, newRevision *do
 	// 	totalApps = append(totalApps, oldRevisionApps...)
 	// }
 
-	readyApps, err := u.GetReadyApps(d, totalApps, u.HealthCheckDockerContainer)
+	readyApps, err := u.GetReadyApps(d, totalApps, u.HealthCheckStarContainer)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
 
-	availableApps, err := u.GetAvailableApps(d, readyApps, u.AvailabilityCheckDockerContainer)
+	availableApps, err := u.GetAvailableApps(d, readyApps, u.AvailabilityCheckStarContainer)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}

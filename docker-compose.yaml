@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  update_service:
-    container_name: update_service
+  rolling_update_service:
+    container_name: rolling_update_service
     build:
       context: ../
-      dockerfile: ./update_service/Dockerfile
+      dockerfile: ./rolling_update_service/Dockerfile
     ports:
       - ${UPDATE_SERVICE_LISTEN_PORT}:${UPDATE_SERVICE_LISTEN_PORT}
     environment:
@@ -23,16 +23,16 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
-  update_service_etcd:
+  rolling_update_service_etcd:
     image: 'bitnami/etcd:latest'
-    container_name: update_service_etcd
+    container_name: rolling_update_service_etcd
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
       - ETCD_ADVERTISE_CLIENT_URLS=http://${UPDATE_SERVICE_ETCD_ADDRESS}
     volumes:
-      - us_etcd_data:/bitnami/etcd
+      - rolling_us_etcd_data:/bitnami/etcd
     networks: 
-      - update_network
+      - rolling_update_network
     ports:
       - "2379:2379"
 
@@ -50,9 +50,9 @@ services:
       - update_network
 
 volumes:
-  us_etcd_data:
+  rolling_us_etcd_data:
     driver: local
 
 networks:
-  update_network:   
+  rolling_update_network:   
     driver: bridge
