@@ -45,16 +45,18 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		return
 	}
 
-	nodes, err := u.QueryNodes(ctx, d.OrgId, 100)
-	if err != nil {
-		log.Printf("Failed to query nodes: %v", err)
-		return
-	}
+	// nodes, err := u.QueryNodes(ctx, d.OrgId, 100)
+	// if err != nil {
+	// 	log.Printf("Failed to query nodes: %v", err)
+	// 	return
+	// }
 
-	nodeIds := make([]string, 0)
-	for _, node := range nodes {
-		nodeIds = append(nodeIds, node.Id)
-	}
+	// nodeIds := make([]string, 0)
+	// for _, node := range nodes {
+	// 	nodeIds = append(nodeIds, node.Id)
+	// }
+
+	nodeIds := []string{"star_1", "star_2", "star_3"}
 
 	if u.IsContextInterrupted(ctx) {
 		return
