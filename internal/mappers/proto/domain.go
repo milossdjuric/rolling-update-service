@@ -337,7 +337,7 @@ func AppSpecFromDomain(appSpec domain.AppSpec) (*api.AppSpec, error) {
 	return resp, nil
 }
 
-func SyscallRuleToDomain(syscallRule *api.SyscallRule) (domain.SyscallRule, error) {
+func SyscallRuleToDomain(syscallRule *api.SyscallRules) (domain.SyscallRule, error) {
 
 	resp := domain.SyscallRule{
 		Names:  make([]string, len(syscallRule.Names)),
@@ -348,9 +348,9 @@ func SyscallRuleToDomain(syscallRule *api.SyscallRule) (domain.SyscallRule, erro
 	return resp, nil
 }
 
-func SyscallRuleFromDomain(syscallRule domain.SyscallRule) (*api.SyscallRule, error) {
+func SyscallRuleFromDomain(syscallRule domain.SyscallRule) (*api.SyscallRules, error) {
 
-	resp := &api.SyscallRule{
+	resp := &api.SyscallRules{
 		Names:  make([]string, len(syscallRule.Names)),
 		Action: syscallRule.Action,
 	}
@@ -382,7 +382,7 @@ func ProfileFromDomain(profile domain.SeccompProfile) (*api.SeccompProfile, erro
 	resp := &api.SeccompProfile{
 		Version:       profile.Version,
 		DefaultAction: profile.DefaultAction,
-		Syscalls:      make([]*api.SyscallRule, len(profile.Syscalls)),
+		Syscalls:      make([]*api.SyscallRules, len(profile.Syscalls)),
 	}
 	for i, domainSyscall := range profile.Syscalls {
 		syscall, err := SyscallRuleFromDomain(domainSyscall)

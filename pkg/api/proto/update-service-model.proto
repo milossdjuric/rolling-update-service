@@ -77,15 +77,15 @@ message AppSpec {
     string seccompDefinitionStrategy = 7;
 }
 
-message SeccompProfile {
+message SeccompProfile {    
     string version = 1;
     string default_action = 3;
-    repeated SyscallRule syscalls = 4;
+    repeated SyscallRules syscalls = 4;
 }
-  
-message SyscallRule {   
-    repeated string names = 1; 
-    string action = 2;         
+
+message SyscallRules {
+    repeated string names = 1;
+    string action = 2;
 }
 
 message ApplyAppOperationCommand{
