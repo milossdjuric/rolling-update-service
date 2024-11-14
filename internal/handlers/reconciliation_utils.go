@@ -265,7 +265,6 @@ func (u *UpdateServiceGrpcHandler) AvailabilityCheckDockerContainer(name string,
 }
 
 func (u *UpdateServiceGrpcHandler) StartStarContainer(revisionName string, selectorLabels map[string]string, extraArgs ...string) error {
-
 	containerLabels := make(map[string]string)
 	for k, v := range selectorLabels {
 		containerLabels[k] = v
@@ -277,9 +276,9 @@ func (u *UpdateServiceGrpcHandler) StartStarContainer(revisionName string, selec
 	if len(extraArgs) < 3 {
 		return fmt.Errorf("not enough arguments for starting star container")
 	}
-	nodeId := extraArgs[0]
-	orgId := extraArgs[1]
-	namespace := extraArgs[2]
+	orgId := extraArgs[0]
+	namespace := extraArgs[1]
+	nodeId := extraArgs[2]
 
 	cmd := api.ApplyAppOperationCommand{
 		OrgId:           orgId,
@@ -300,6 +299,7 @@ func (u *UpdateServiceGrpcHandler) StartStarContainer(revisionName string, selec
 		log.Printf("Failed to publish command: %v", err)
 		return err
 	}
+
 	sub, err := nats.NewSubscriber(u.natsConn, nodeId+".app_operation.start_app."+uniqueName, "")
 	if err != nil {
 		log.Printf("Failed to create subscriber: %v", err)
@@ -330,7 +330,7 @@ func (u *UpdateServiceGrpcHandler) StartStarContainer(revisionName string, selec
 			log.Printf("Star container started: %s, %s", nodeId, uniqueName)
 			return nil
 		} else {
-			log.Printf("Star container failed to start, reason unknown:%s, %s", nodeId, uniqueName)
+			log.Printf("Star container failed to start, reason unknown: %s, %s", nodeId, uniqueName)
 			return fmt.Errorf("star container failed to start, reason unknown")
 		}
 	case <-ctx.Done():
@@ -344,9 +344,9 @@ func (u *UpdateServiceGrpcHandler) StopStarContainer(name string, extraArgs ...s
 	if len(extraArgs) < 3 {
 		return fmt.Errorf("not enough arguments for stopping star container")
 	}
-	nodeId := extraArgs[0]
-	orgId := extraArgs[1]
-	namespace := extraArgs[2]
+	orgId := extraArgs[0]
+	namespace := extraArgs[1]
+	nodeId := extraArgs[2]
 
 	cmd := api.ApplyAppOperationCommand{
 		OrgId:           orgId,
@@ -414,9 +414,9 @@ func (u *UpdateServiceGrpcHandler) QueryStarContainers(prefix string, selectorLa
 	if len(extraArgs) < 3 {
 		return nil, fmt.Errorf("not enough arguments for stopping star container")
 	}
-	nodeId := extraArgs[0]
-	orgId := extraArgs[1]
-	namespace := extraArgs[2]
+	orgId := extraArgs[0]
+	namespace := extraArgs[1]
+	nodeId := extraArgs[2]
 
 	cmd := api.ApplyAppOperationCommand{
 		OrgId:           orgId,
@@ -485,9 +485,9 @@ func (u *UpdateServiceGrpcHandler) HealthCheckStarContainer(name string, extraAr
 	if len(extraArgs) < 3 {
 		return false, fmt.Errorf("not enough arguments for stopping star container")
 	}
-	nodeId := extraArgs[0]
-	orgId := extraArgs[1]
-	namespace := extraArgs[2]
+	orgId := extraArgs[0]
+	namespace := extraArgs[1]
+	nodeId := extraArgs[2]
 
 	cmd := api.ApplyAppOperationCommand{
 		OrgId:           orgId,
@@ -552,9 +552,9 @@ func (u *UpdateServiceGrpcHandler) AvailabilityCheckStarContainer(name string, m
 	if len(extraArgs) < 3 {
 		return false, fmt.Errorf("not enough arguments for stopping star container")
 	}
-	nodeId := extraArgs[0]
-	orgId := extraArgs[1]
-	namespace := extraArgs[2]
+	orgId := extraArgs[0]
+	namespace := extraArgs[1]
+	nodeId := extraArgs[2]
 
 	cmd := api.ApplyAppOperationCommand{
 		OrgId:           orgId,
