@@ -19,7 +19,6 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UpdateService_PingFunction_FullMethodName                = "/proto.UpdateService/PingFunction"
 	UpdateService_AddDeployment_FullMethodName               = "/proto.UpdateService/AddDeployment"
 	UpdateService_GetDeployment_FullMethodName               = "/proto.UpdateService/GetDeployment"
 	UpdateService_GetDeploymentOwnedRevisions_FullMethodName = "/proto.UpdateService/GetDeploymentOwnedRevisions"
@@ -30,7 +29,6 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UpdateServiceClient interface {
-	PingFunction(ctx context.Context, in *Ping, opts ...grpc.CallOption) (*Pong, error)
 	AddDeployment(ctx context.Context, in *AddDeploymentReq, opts ...grpc.CallOption) (*AddDeploymentResp, error)
 	GetDeployment(ctx context.Context, in *GetDeploymentReq, opts ...grpc.CallOption) (*GetDeploymentResp, error)
 	GetDeploymentOwnedRevisions(ctx context.Context, in *GetDeploymentOwnedRevisionsReq, opts ...grpc.CallOption) (*GetDeploymentOwnedRevisionsResp, error)
@@ -43,16 +41,6 @@ type updateServiceClient struct {
 
 func NewUpdateServiceClient(cc grpc.ClientConnInterface) UpdateServiceClient {
 	return &updateServiceClient{cc}
-}
-
-func (c *updateServiceClient) PingFunction(ctx context.Context, in *Ping, opts ...grpc.CallOption) (*Pong, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Pong)
-	err := c.cc.Invoke(ctx, UpdateService_PingFunction_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *updateServiceClient) AddDeployment(ctx context.Context, in *AddDeploymentReq, opts ...grpc.CallOption) (*AddDeploymentResp, error) {
@@ -99,7 +87,6 @@ func (c *updateServiceClient) RollbackRevision(ctx context.Context, in *Rollback
 // All implementations must embed UnimplementedUpdateServiceServer
 // for forward compatibility.
 type UpdateServiceServer interface {
-	PingFunction(context.Context, *Ping) (*Pong, error)
 	AddDeployment(context.Context, *AddDeploymentReq) (*AddDeploymentResp, error)
 	GetDeployment(context.Context, *GetDeploymentReq) (*GetDeploymentResp, error)
 	GetDeploymentOwnedRevisions(context.Context, *GetDeploymentOwnedRevisionsReq) (*GetDeploymentOwnedRevisionsResp, error)
@@ -114,9 +101,6 @@ type UpdateServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedUpdateServiceServer struct{}
 
-func (UnimplementedUpdateServiceServer) PingFunction(context.Context, *Ping) (*Pong, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PingFunction not implemented")
-}
 func (UnimplementedUpdateServiceServer) AddDeployment(context.Context, *AddDeploymentReq) (*AddDeploymentResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddDeployment not implemented")
 }
@@ -148,24 +132,6 @@ func RegisterUpdateServiceServer(s grpc.ServiceRegistrar, srv UpdateServiceServe
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&UpdateService_ServiceDesc, srv)
-}
-
-func _UpdateService_PingFunction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Ping)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UpdateServiceServer).PingFunction(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UpdateService_PingFunction_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UpdateServiceServer).PingFunction(ctx, req.(*Ping))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _UpdateService_AddDeployment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -247,10 +213,6 @@ var UpdateService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.UpdateService",
 	HandlerType: (*UpdateServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "PingFunction",
-			Handler:    _UpdateService_PingFunction_Handler,
-		},
 		{
 			MethodName: "AddDeployment",
 			Handler:    _UpdateService_AddDeployment_Handler,

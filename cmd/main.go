@@ -1,97 +1,39 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
-	magnetarapi "github.com/c12s/magnetar/pkg/api"
-	"github.com/docker/docker/client"
-	"github.com/milossdjuric/rolling_update_service/internal/handlers"
-	"github.com/milossdjuric/rolling_update_service/internal/marshallers/proto"
-	"github.com/milossdjuric/rolling_update_service/internal/repos"
-	"github.com/milossdjuric/rolling_update_service/pkg/api"
-	"github.com/nats-io/nats.go"
-	etcd "go.etcd.io/etcd/client/v3"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection"
+	"github.com/milossdjuric/rolling_update_service/internal/configs"
+	"github.com/milossdjuric/rolling_update_service/internal/startup"
 )
 
 func main() {
 
-	fmt.Printf("Connecting to etcd at: http://%s\n", os.Getenv("UPDATE_SERVICE_ETCD_ADDRESS"))
-
-	etcdClient, err := etcd.New(etcd.Config{
-		Endpoints: []string{fmt.Sprintf("http://%s", os.Getenv("UPDATE_SERVICE_ETCD_ADDRESS"))},
-	})
+	config, err := configs.NewFromEnv()
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer etcdClient.Close()
-
-	natsAddress := fmt.Sprintf("nats://%s:%s", os.Getenv("NATS_HOSTNAME"), os.Getenv("NATS_PORT"))
-	log.Println("Connecting to NATS at:", natsAddress)
-	natsConn, err := nats.Connect(natsAddress)
-	if err != nil {
-		log.Println("Failed to connect to NATS:", err)
-		log.Fatal(err)
-	}
-	defer natsConn.Close()
-
-	dockerClientAddress := os.Getenv("DOCKER_CLIENT_ADDRESS")
-	dockerClient, err := client.NewClientWithOpts(client.WithHost(dockerClientAddress), client.WithAPIVersionNegotiation())
-	log.Println("Connecting to Docker:", dockerClient.DaemonHost())
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer dockerClient.Close()
-
-	connMagnetar, err := grpc.NewClient(os.Getenv("MAGNETAR_ADDRESS"), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer connMagnetar.Close()
-	magnetar := magnetarapi.NewMagnetarClient(connMagnetar)
-
-	deploymentMarshaller := proto.NewProtoDeploymentMarshaller()
-	deploymentRepo, err := repos.NewDeploymentEtcdRepo(etcdClient, deploymentMarshaller)
-	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error loading config: %v", err)
 	}
 
-	revisionMarshaller := proto.NewProtoRevisionMarshaller()
-	revisionRepo, err := repos.NewRevisionEtcdRepo(etcdClient, revisionMarshaller)
+	app, err := startup.NewAppWithConfig(config)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error creating app: %v", err)
 	}
 
-	updateService := handlers.NewUpdateServiceGrpcHandler(deploymentRepo, revisionRepo, natsConn, dockerClient, magnetar)
-
-	server := grpc.NewServer()
-	api.RegisterUpdateServiceServer(server, updateService)
-	reflection.Register(server)
-
-	listen, err := net.Listen("tcp", os.Getenv("UPDATE_SERVICE_ADDRESS"))
+	err = app.Start()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error starting app: %v", err)
 	}
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT)
 
-	go func() {
-
-		log.Printf("Server listening on %v", listen.Addr())
-		if err := server.Serve(listen); err != nil {
-			log.Fatal("failed to serve: ", err)
-		}
-	}()
-
 	<-shutdown
 
-	server.GracefulStop()
+	log.Println("Shutting down app")
+
+	app.Shutdown()
+	log.Println("App shutdown complete")
 }

@@ -6,11 +6,9 @@ import (
 )
 
 const (
-	TaskTypeGetDeployment               = "GetDeplyoment"
-	TaskTypeGetDeploymentOwnedRevisions = "DeploymentOwnedRevisions"
-	TaskTypeRollback                    = "Rollback"
-	TaskTypePause                       = "Pause"
-	TaskTypeUnpause                     = "Unpause"
+	TaskTypeRollback = "Rollback"
+	TaskTypePause    = "Pause"
+	TaskTypeUnpause  = "Unpause"
 )
 
 type WorkerTask struct {

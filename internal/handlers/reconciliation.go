@@ -45,18 +45,18 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		return
 	}
 
-	// nodes, err := u.QueryNodes(ctx, d.OrgId, 100)
-	// if err != nil {
-	// 	log.Printf("Failed to query nodes: %v", err)
-	// 	return
-	// }
+	nodes, err := u.QueryNodes(ctx, d.OrgId, 100)
+	if err != nil {
+		log.Printf("Failed to query nodes: %v", err)
+		return
+	}
 
-	// nodeIds := make([]string, 0)
-	// for _, node := range nodes {
-	// 	nodeIds = append(nodeIds, node.Id)
-	// }
+	nodeIds := make([]string, 0)
+	for _, node := range nodes {
+		nodeIds = append(nodeIds, node.Id)
+	}
 
-	nodeIds := []string{"star_1", "star_2", "star_3"}
+	// nodeIds := []string{"star_1", "star_2", "star_3"}
 
 	if u.IsContextInterrupted(ctx) {
 		return
@@ -124,7 +124,7 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		resChan := make(chan error, 1)
 		go func() {
 			log.Println("ROLLING deployment")
-			err := u.Roll(d, newRevision, oldRevisions, activeRevisions, activeRevisionsAppCount, totalApps, availableApps)
+			err := u.Roll(d, newRevision, oldRevisions, activeRevisions, activeRevisionsAppCount, totalApps, availableApps, nodeIds...)
 			resChan <- err
 		}()
 		go func() {
@@ -445,10 +445,12 @@ func (u *UpdateServiceGrpcHandler) ScaleRevision(d *domain.Deployment, revision 
 		log.Printf("Scaling %s %s, Old size: %d, New size: %d", revision.Name, scaleDirection, oldSize, newSize)
 		startAppsArgs := append(nodeIds, revision.OrgId)
 		startAppsArgs = append(startAppsArgs, revision.Namespace)
-		successes, err := u.StartAppsBatch(newSize-oldSize, func(...string) error {
+		log.Println("START APPS SUPPOSED NODES: ", nodeIds)
+		log.Println("START APPS ARGS: ", startAppsArgs)
+		successes, err := u.StartAppsBatch(newSize-oldSize, func(extraArgs ...string) error {
 			// change method for start apps if needed
 			// return u.StartDockerContainer(revision.Name, revision.Spec.AppSpec.SelectorLabels)
-			return u.StartStarContainer(revision.Name, revision.Spec.AppSpec.SelectorLabels)
+			return u.StartStarContainer(revision.Name, revision.Spec.AppSpec.SelectorLabels, extraArgs...)
 		}, startAppsArgs...)
 		if err != nil {
 			log.Println("Start apps batch error:", err)
@@ -514,9 +516,15 @@ func (u *UpdateServiceGrpcHandler) StopApps(appCount int, apps []domain.App, fn 
 }
 
 func (u *UpdateServiceGrpcHandler) StartAppsBatch(appCount int64, fn func(...string) error, extraArgs ...string) (int, error) {
-	orgId := extraArgs[len(extraArgs)-1]
-	namespace := extraArgs[len(extraArgs)-2]
+
+	orgId := extraArgs[len(extraArgs)-2]
+	namespace := extraArgs[len(extraArgs)-1]
 	nodeIds := extraArgs[:len(extraArgs)-2]
+
+	log.Println("START APPS BATCH EXTRA ARGS: ", extraArgs)
+	log.Println("START APPS BATCH: orgId ", orgId)
+	log.Println("START APPS BATCH: namespace ", namespace)
+	log.Println("START APPS BATCH: nodeIds ", nodeIds)
 
 	remaining := int(appCount)
 	successes := 0
@@ -741,22 +749,6 @@ func (u *UpdateServiceGrpcHandler) GetApps(d *domain.Deployment, newRevision *do
 		}
 	}
 
-	// newApps, err := u.GetRevisionOwnedApps(d, newRevision, u.QueryDockerContainer)
-	// if err != nil {
-	// 	return nil, nil, nil, nil, nil, err
-	// }
-
-	// totalApps = append(totalApps, newApps...)
-
-	// for _, revision := range oldRevisions {
-	// 	oldRevisionApps, err := u.GetRevisionOwnedApps(d, &revision, u.QueryDockerContainer)
-	// 	if err != nil {
-	// 		return nil, nil, nil, nil, nil, err
-	// 	}
-	// 	oldApps = append(oldApps, oldRevisionApps...)
-	// 	totalApps = append(totalApps, oldRevisionApps...)
-	// }
-
 	readyApps, err := u.GetReadyApps(d, totalApps, u.HealthCheckStarContainer, nodeIds...)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
@@ -769,118 +761,3 @@ func (u *UpdateServiceGrpcHandler) GetApps(d *domain.Deployment, newRevision *do
 
 	return totalApps, newApps, readyApps, availableApps, oldApps, nil
 }
-
-// func (u *UpdateServiceGrpcHandler) Scale(d *domain.Deployment, newRevision *domain.Revision, activeRevisions []domain.Revision, activeRevisionsAppCount map[*domain.Revision]int64) error {
-
-// isNewRevisionActive := false
-// for _, revision := range activeRevisions {
-// 	if newRevision.CompareRevisions(revision) {
-// 		isNewRevisionActive = true
-// 		break
-// 	}
-// }
-
-// //If no active revisions or only new revision is active, scale
-// if len(activeRevisions) == 0 || len(activeRevisions) == 1 && isNewRevisionActive {
-// 	//Total app count matches specified app count
-// 	if d.Spec.AppCount == d.Status.TotalAppCount {
-// 		return nil
-// 	}
-// 	//Scale
-// }
-
-// //If new revision is active, updated apps match the spec number of apps, but total apps are more than spec number of apps
-// if isNewRevisionActive && d.Status.TotalAppCount > d.Spec.AppCount && d.Status.UpdatedAppCount == d.Spec.AppCount {
-
-// 	for _, revision := range activeRevisions {
-// 		//skip scaling for new revision, should downscale others
-// 		if revision.Name == newRevision.Name && revision.Spec.AppSpec.CompareAppSpecs(newRevision.Spec.AppSpec) {
-// 			continue
-// 		}
-// 		//Scale
-// 	}
-// }
-
-// if d.Spec.Strategy.Type == domain.RollingUpdateStrategy {
-
-// 	allowedSize := int64(0)
-
-// 	if d.Spec.AppCount > 0 {
-// 		allowedSize = d.Spec.AppCount + *d.Spec.Strategy.RollingUpdate.MaxSurge
-// 	}
-
-// 	appsToAdd := allowedSize - d.Status.TotalAppCount
-
-// 	var scaleDirection string
-// 	if appsToAdd > 0 {
-// 		scaleDirection = worker.ScaleUp
-// 	}
-// 	if appsToAdd < 0 {
-// 		scaleDirection = worker.ScaleDown
-// 	}
-// 	log.Printf("Scaling %s", scaleDirection)
-
-// 	appsAdded := int64(0)
-// 	revisionNameToSize := make(map[string]int64)
-
-// 	for i := range activeRevisions {
-// 		revision := activeRevisions[i]
-
-// 		if appsToAdd != 0 {
-// 			revisionProportion, err := u.GetRevisionProportion(d, &revision, appsToAdd, appsAdded, activeRevisionsAppCount[&revision])
-// 			if err != nil {
-// 				return err
-// 			}
-
-// 			revisionNameToSize[revision.Name] = activeRevisionsAppCount[&revision] + revisionProportion
-// 			appsAdded += revisionProportion
-// 		} else {
-// 			revisionNameToSize[revision.Name] = activeRevisionsAppCount[&revision]
-// 		}
-// 	}
-
-// 	for i := range activeRevisions {
-// 		revision := activeRevisions[i]
-
-// 		if i == 0 && appsToAdd != 0 {
-// 			leftover := appsToAdd - appsAdded
-// 			revisionNameToSize[revision.Name] += leftover
-// 			if revisionNameToSize[revision.Name] < 0 {
-// 				revisionNameToSize[revision.Name] = 0
-// 			}
-// 		}
-
-// 		//Scale
-// 	}
-// }
-
-// 	return nil
-// }
-
-// func (u *UpdateServiceGrpcHandler) GetRevisionProportion(d *domain.Deployment, revision *domain.Revision, appsToAdd, appsAdded, revisionAppCount int64) (int64, error) {
-
-// 	if revision == nil || appsToAdd == 0 {
-// 		return 0, nil
-// 	}
-
-// 	allowed := appsToAdd - appsAdded
-// 	revisionProportion := u.CalculateRevisionProportion(d, revision, revisionAppCount)
-
-// 	if appsToAdd > 0 {
-// 		return min(allowed, revisionProportion), nil
-// 	}
-
-// 	return max(allowed, revisionProportion), nil
-// }
-
-// func (u *UpdateServiceGrpcHandler) CalculateRevisionProportion(d *domain.Deployment, revision *domain.Revision, revisionAppCount int64) int64 {
-
-// 	if d.Spec.AppCount == int64(0) {
-// 		return -revisionAppCount
-// 	}
-
-// 	apps := d.Spec.AppCount + *d.Spec.Strategy.RollingUpdate.MaxSurge
-
-// 	newRevisionAppCount := (float64(revisionAppCount) * float64(apps)) / float64(d.Status.TotalAppCount)
-// 	return int64(math.Round(newRevisionAppCount)) - revisionAppCount
-// }

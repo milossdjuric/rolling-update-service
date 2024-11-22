@@ -322,8 +322,11 @@ func (u *UpdateServiceGrpcHandler) StartStarContainer(revisionName string, selec
 			log.Printf("Failed to unmarshal response: %v", err)
 			return err
 		}
-		if resp.ErrorMessages != "" {
-			log.Printf("Error messages: %v", resp.ErrorMessages)
+		if len(resp.ErrorMessages) > 0 {
+			errorMessages := ""
+			for _, errorMsg := range resp.ErrorMessages {
+				errorMessages += "|" + errorMsg
+			}
 			return fmt.Errorf("response error messages: %v", err)
 		}
 		if resp.Success {
@@ -389,8 +392,11 @@ func (u *UpdateServiceGrpcHandler) StopStarContainer(name string, extraArgs ...s
 			log.Printf("Failed to unmarshal response: %v", err)
 			return err
 		}
-		if resp.ErrorMessages != "" {
-			log.Printf("Error messages: %v", resp.ErrorMessages)
+		if len(resp.ErrorMessages) > 0 {
+			errorMessages := ""
+			for _, errorMsg := range resp.ErrorMessages {
+				errorMessages += "|" + errorMsg
+			}
 			return fmt.Errorf("response error messages: %v", err)
 		}
 		if resp.Success {
@@ -460,8 +466,11 @@ func (u *UpdateServiceGrpcHandler) QueryStarContainers(prefix string, selectorLa
 			log.Printf("Failed to unmarshal response: %v", err)
 			return nil, err
 		}
-		if resp.ErrorMessages != "" {
-			log.Printf("Error messages: %v", resp.ErrorMessages)
+		if len(resp.ErrorMessages) > 0 {
+			errorMessages := ""
+			for _, errorMsg := range resp.ErrorMessages {
+				errorMessages += "|" + errorMsg
+			}
 			return nil, fmt.Errorf("response error messages: %v", err)
 		}
 		if resp.Success {
@@ -530,8 +539,11 @@ func (u *UpdateServiceGrpcHandler) HealthCheckStarContainer(name string, extraAr
 			log.Printf("Failed to unmarshal response: %v", err)
 			return false, err
 		}
-		if resp.ErrorMessages != "" {
-			log.Printf("Error messages: %v", resp.ErrorMessages)
+		if len(resp.ErrorMessages) > 0 {
+			errorMessages := ""
+			for _, errorMsg := range resp.ErrorMessages {
+				errorMessages += "|" + errorMsg
+			}
 			return false, fmt.Errorf("response error messages: %v", err)
 		}
 		if resp.Success {
@@ -597,8 +609,11 @@ func (u *UpdateServiceGrpcHandler) AvailabilityCheckStarContainer(name string, m
 			log.Printf("Failed to unmarshal response: %v", err)
 			return false, err
 		}
-		if resp.ErrorMessages != "" {
-			log.Printf("Error messages: %v", resp.ErrorMessages)
+		if len(resp.ErrorMessages) > 0 {
+			errorMessages := ""
+			for _, errorMsg := range resp.ErrorMessages {
+				errorMessages += "|" + errorMsg
+			}
 			return false, fmt.Errorf("response error messages: %v", err)
 		}
 		if resp.Success {
@@ -656,4 +671,22 @@ func setOutgoingContext(ctx context.Context) context.Context {
 		return ctx
 	}
 	return metadata.NewOutgoingContext(ctx, md)
+}
+
+func (u *UpdateServiceGrpcHandler) QueryNodesNoAuth(ctx context.Context, orgId string, percentage int32) ([]*magnetarapi.NodeStringified, error) {
+
+	queryReq := &magnetarapi.ListOrgOwnedNodesNoAuthReq{
+		Org: orgId,
+	}
+	ctx = setOutgoingContext(ctx)
+	queryResp, err := u.magnetar.ListOrgOwnedNodesNoAuth(ctx, queryReq)
+	if err != nil {
+		log.Printf("Failed to list nodes: %v", err)
+		return nil, err
+	}
+
+	log.Printf("query.Resp.Nodes: %v", queryResp.Nodes)
+
+	nodes := selectRandomNodes(queryResp.Nodes, percentage)
+	return nodes, nil
 }

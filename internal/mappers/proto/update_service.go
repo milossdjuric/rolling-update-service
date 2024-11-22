@@ -135,3 +135,43 @@ func GetDeploymentOwnedRevisionsRespFromDomain(revisions []domain.Revision) (*ap
 		Revisions: revisionsProto,
 	}, nil
 }
+
+// func WorkerTaskToDomain(task api.WorkerTask) (worker.WorkerTask, error) {
+
+// 	// Initialize payload as an empty map
+// 	payload := make(map[string]interface{})
+
+// 	// Switch on the task type and handle accordingly
+// 	switch task.TaskType {
+// 	case worker.TaskTypeRollback:
+// 		// Ensure the payload contains the correct field and type
+// 		if rollbackRevName, ok := task.Payload["RollbackRevisionName"]; ok {
+// 			// Unmarshal the "RollbackRevisionName" field into a string
+// 			rollbackRevisionName := ""
+// 			if err := ptypes.UnmarshalAny(rollbackRevName.(*any.Any), &rollbackRevisionName); err != nil {
+// 				return worker.WorkerTask{}, status.Error(codes.InvalidArgument, "Failed to unpack RollbackRevisionName")
+// 			}
+// 			// Add the unpacked value to the payload map
+// 			payload["RollbackRevisionName"] = rollbackRevisionName
+// 		} else {
+// 			return worker.WorkerTask{}, status.Error(codes.InvalidArgument, "Payload does not contain RollbackRevisionName")
+// 		}
+
+// 	case worker.TaskTypePause, worker.TaskTypeUnpause:
+// 		// For Pause and Unpause, the payload is an empty map, so we don't need any additional data
+// 		// (we've already initialized payload as an empty map above)
+
+// 	default:
+// 		// Handle invalid task types
+// 		return worker.WorkerTask{}, status.Error(codes.InvalidArgument, "Invalid task type")
+// 	}
+
+// 	// Return the WorkerTask with the populated payload
+// 	return worker.WorkerTask{
+// 		TaskType:            task.TaskType,
+// 		DeploymentName:      task.DeploymentName,
+// 		DeploymentNamespace: task.DeploymentNamespace,
+// 		DeploymentOrgId:     task.DeploymentOrgId,
+// 		Payload:             payload,
+// 	}, nil
+// }

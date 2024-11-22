@@ -5,9 +5,9 @@ option go_package = "update-service/pkg/api";
 package proto;
 
 import "update-service-model.proto";
+import "google/protobuf/any.proto";
 
 service UpdateService {
-    rpc PingFunction(Ping) returns (Pong) {}          
     rpc AddDeployment(AddDeploymentReq) returns (AddDeploymentResp) {}
     rpc GetDeployment(GetDeploymentReq) returns (GetDeploymentResp) {}
     rpc GetDeploymentOwnedRevisions(GetDeploymentOwnedRevisionsReq) returns (GetDeploymentOwnedRevisionsResp) {}
@@ -85,14 +85,6 @@ message GetDeploymentOwnedRevisionsResp{
     repeated Revision revisions = 1;
 }
 
-message Ping {
-    string message = 1;
-}       
-
-message Pong {
-    string message = 1;
-}
-
 // message StartAppReq{
 //   string name = 1;
 //   map<string, string> selectorLabels = 2;
@@ -118,28 +110,43 @@ message Pong {
 
 message StartAppResp{
   bool success = 1;
-  string errorMessages = 2;
+  repeated string errorMessages = 2;
 }
 
 message StopAppResp{
   bool success = 1;
-  string errorMessages = 2;
+  repeated string errorMessages = 2;
 }
 
 message QueryAppResp{
   bool success = 1;
-  string errorMessages = 2;
+  repeated string errorMessages = 2;
   repeated App apps = 3;
 }
 
 message HealthCheckAppResp{
   bool success = 1;
-  string errorMessages = 2;
+  repeated string errorMessages = 2;
   bool healthy = 3;
 }
 
 message AvailabilityCheckAppResp{
   bool success = 1;
-  string errorMessages = 2;
+  repeated string errorMessages = 2;
   bool available = 3;
 }
+
+message WorkerTask{
+    string taskType = 1;
+    string deploymentName = 2;
+    string deploymentNamespace = 3; 
+    string deploymentOrgId = 4;
+    map<string, google.protobuf.Any> payload = 5;
+}
+
+message TaskResponse{
+    map<string, google.protobuf.Any> payload = 1;
+    string errorMsg = 2;
+    string errorType = 3;
+}
+

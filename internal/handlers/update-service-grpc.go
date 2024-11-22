@@ -38,10 +38,6 @@ func NewUpdateServiceGrpcHandler(deploymentRepo domain.DeploymentRepo, revisionR
 	}
 }
 
-func (u UpdateServiceGrpcHandler) PingFunction(ctx context.Context, ping *api.Ping) (*api.Pong, error) {
-	return &api.Pong{Message: "Pong"}, nil
-}
-
 func (u UpdateServiceGrpcHandler) AddDeployment(ctx context.Context, req *api.AddDeploymentReq) (*api.AddDeploymentResp, error) {
 	// get the deployment from the request
 	deployment, err := proto.AddDeploymentReqToDomain(req)
@@ -180,93 +176,3 @@ func (u UpdateServiceGrpcHandler) GetDeploymentOwnedRevisions(ctx context.Contex
 
 	return protoResp, nil
 }
-
-// func (u UpdateServiceGrpcHandler) GetDeployment(ctx context.Context, req *api.GetDeploymentReq) (*api.GetDeploymentResp, error) {
-
-// 	task := worker.WorkerTask{
-// 		TaskType:            worker.TaskTypeGetDeployment,
-// 		DeploymentName:      req.Name,
-// 		DeploymentNamespace: req.Namespace,
-// 		DeploymentOrgId:     req.OrgId,
-// 		Payload: map[string]interface{}{
-// 			"GetDeploymentReq": req,
-// 		},
-// 	}
-
-// 	resp, err := u.sendTaskAndSubscribe(task)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if resp.ErrorMsg != "" {
-// 		return nil, utils.TaskResponseToGrpcError(resp)
-// 	}
-
-// 	deploymentData, ok := resp.Payload["Deployment"].(map[string]interface{})
-// 	if !ok {
-// 		return nil, status.Error(codes.Internal, "Failed to cast deployment data to map")
-// 	}
-
-// 	var deployment domain.Deployment
-// 	deploymentJSON, err := json.Marshal(deploymentData)
-// 	if err != nil {
-// 		return nil, status.Error(codes.Internal, err.Error())
-// 	}
-
-// 	err = json.Unmarshal(deploymentJSON, &deployment)
-// 	if err != nil {
-// 		return nil, status.Error(codes.Internal, err.Error())
-// 	}
-
-// 	protoResp, err := proto.GetDeploymentRespFromDomain(deployment)
-// 	if err != nil {
-// 		return nil, status.Error(codes.Internal, err.Error())
-// 	}
-
-// 	return protoResp, nil
-// }
-
-// func (u UpdateServiceGrpcHandler) GetDeploymentOwnedRevisions(ctx context.Context, req *api.GetDeploymentOwnedRevisionsReq) (*api.GetDeploymentOwnedRevisionsResp, error) {
-
-// 	task := worker.WorkerTask{
-// 		TaskType:            worker.TaskTypeGetDeploymentOwnedRevisions,
-// 		DeploymentName:      req.Name,
-// 		DeploymentNamespace: req.Namespace,
-// 		DeploymentOrgId:     req.OrgId,
-// 		Payload: map[string]interface{}{
-// 			"GetDeploymentOwnedRevisionsReq": req,
-// 		},
-// 	}
-
-// 	resp, err := u.sendTaskAndSubscribe(task)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if resp.ErrorMsg != "" {
-// 		return nil, utils.TaskResponseToGrpcError(resp)
-// 	}
-
-// 	revisionsData, ok := resp.Payload["Revisions"].([]interface{})
-// 	if !ok {
-// 		return nil, status.Error(codes.Internal, "Failed to cast revisions data to map")
-// 	}
-
-// 	var revisions []domain.Revision
-// 	revisionsJSON, err := json.Marshal(revisionsData)
-// 	if err != nil {
-// 		return nil, status.Error(codes.Internal, err.Error())
-// 	}
-
-// 	err = json.Unmarshal(revisionsJSON, &revisions)
-// 	if err != nil {
-// 		return nil, status.Error(codes.Internal, err.Error())
-// 	}
-
-// 	protoResp, err := proto.GetDeploymentOwnedRevisionsRespFromDomain(revisions)
-// 	if err != nil {
-// 		return nil, status.Error(codes.Internal, err.Error())
-// 	}
-
-// 	return protoResp, nil
-// }

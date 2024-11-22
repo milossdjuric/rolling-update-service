@@ -1,0 +1,41 @@
+package configs
+
+import "os"
+
+type Config struct {
+	natsAddress     string
+	etcdAddress     string
+	serverAddress   string
+	magnetarAddress string
+	dockerAddress   string
+}
+
+func (c *Config) NatsAddress() string {
+	return c.natsAddress
+}
+
+func (c *Config) EtcdAddress() string {
+	return c.etcdAddress
+}
+
+func (c *Config) ServerAddress() string {
+	return c.serverAddress
+}
+
+func (c *Config) MagnetarAddress() string {
+	return c.magnetarAddress
+}
+
+func (c *Config) DockerAddress() string {
+	return c.dockerAddress
+}
+
+func NewFromEnv() (*Config, error) {
+	return &Config{
+		natsAddress:     os.Getenv("NATS_ADDRESS"),
+		etcdAddress:     os.Getenv("UPDATE_SERVICE_ETCD_ADDRESS"),
+		serverAddress:   os.Getenv("UPDATE_SERVICE_ADDRESS"),
+		magnetarAddress: os.Getenv("MAGNETAR_ADDRESS"),
+		dockerAddress:   os.Getenv("DOCKER_CLIENT_ADDRESS"),
+	}, nil
+}
