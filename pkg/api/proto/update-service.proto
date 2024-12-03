@@ -12,6 +12,10 @@ service UpdateService {
     rpc GetDeployment(GetDeploymentReq) returns (GetDeploymentResp) {}
     rpc GetDeploymentOwnedRevisions(GetDeploymentOwnedRevisionsReq) returns (GetDeploymentOwnedRevisionsResp) {}
     rpc RollbackRevision(RollbackRevisionReq) returns (RollbackRevisionResp) {}
+    rpc PauseDeployment(PauseDeploymentReq) returns (PauseDeploymentResp) {}
+    rpc UnpauseDeployment(UnpauseDeploymentReq) returns (UnpauseDeploymentResp) {}
+    rpc StopDeployment(StopDeploymentReq) returns (StopDeploymentResp) {}
+    rpc DeleteDeployment(DeleteDeploymentReq) returns (DeleteDeploymentResp) {}
 }
 
 message AddDeploymentReq {
@@ -34,6 +38,7 @@ message AddDeploymentReq {
         int64 minReadySeconds = 6;
         int64 deadlineExceeded = 7;
         optional bool automaticRollback = 8;
+        string mode = 9;
     }
     Spec spec = 5;
 }
@@ -85,28 +90,21 @@ message GetDeploymentOwnedRevisionsResp{
     repeated Revision revisions = 1;
 }
 
-// message StartAppReq{
-//   string name = 1;
-//   map<string, string> selectorLabels = 2;
-// }
+message StopDeploymentReq {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+}
 
-// message StopAppReq{
-//   string name = 1;
-// }
+message StopDeploymentResp {}
 
-// message QueryAppReq{
-//   string prefix = 1;
-//   map<string, string> selectorLabels = 2;
-// }
+message DeleteDeploymentReq {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+}
 
-// message HealthCheckAppReq{
-//   string name = 1;
-// }
-
-// message AvailabilityCheckAppReq{
-//   string name = 1;
-//   int64 minReadySeconds = 2;
-// }
+message DeleteDeploymentResp {}
 
 message StartAppResp{
   bool success = 1;
@@ -150,3 +148,27 @@ message TaskResponse{
     string errorType = 3;
 }
 
+// request messages for agent node, not used
+ 
+// message StartAppReq{
+//   string name = 1;
+//   map<string, string> selectorLabels = 2;
+// }
+
+// message StopAppReq{
+//   string name = 1;
+// }
+
+// message QueryAppReq{
+//   string prefix = 1;
+//   map<string, string> selectorLabels = 2;
+// }
+
+// message HealthCheckAppReq{
+//   string name = 1;
+// }
+
+// message AvailabilityCheckAppReq{
+//   string name = 1;
+//   int64 minReadySeconds = 2;
+// }

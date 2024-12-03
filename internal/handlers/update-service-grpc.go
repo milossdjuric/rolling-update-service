@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -25,9 +26,10 @@ type UpdateServiceGrpcHandler struct {
 	workerMap      *worker.WorkerMap
 	dockerClient   *client.Client
 	magnetar       magnetarapi.MagnetarClient
+	rateLimiter    *LeakyBucketRateLimiter
 }
 
-func NewUpdateServiceGrpcHandler(deploymentRepo domain.DeploymentRepo, revisionRepo domain.RevisionRepo, natsConn *nats.Conn, dockerClient *client.Client, magnetarClient magnetarapi.MagnetarClient) api.UpdateServiceServer {
+func NewUpdateServiceGrpcHandler(deploymentRepo domain.DeploymentRepo, revisionRepo domain.RevisionRepo, natsConn *nats.Conn, dockerClient *client.Client, magnetarClient magnetarapi.MagnetarClient, rateLimiter *LeakyBucketRateLimiter) api.UpdateServiceServer {
 	return &UpdateServiceGrpcHandler{
 		deploymentRepo: deploymentRepo,
 		revisionRepo:   revisionRepo,
@@ -35,6 +37,7 @@ func NewUpdateServiceGrpcHandler(deploymentRepo domain.DeploymentRepo, revisionR
 		workerMap:      worker.NewWorkerMap(),
 		dockerClient:   dockerClient,
 		magnetar:       magnetarClient,
+		rateLimiter:    rateLimiter,
 	}
 }
 
@@ -61,15 +64,25 @@ func (u UpdateServiceGrpcHandler) AddDeployment(ctx context.Context, req *api.Ad
 	if err == nil && existingDeployment != nil {
 		deployment.Status = domain.SetDeploymentStatus(existingDeployment.Status)
 		// update the existing deployment states update timestamp
+		// deployment.Status.States[domain.DeploymentAvailable] = domain.NewDeploymentState(domain.DeploymentAvailable, deployment.Status.States[domain.DeploymentAvailable].Active,
+		// 	deployment.Status.States[domain.DeploymentAvailable].Message, time.Now().Unix(), deployment.Status.States[domain.DeploymentAvailable].LastUpdateTimestamp)
 		deployment.Status.States[domain.DeploymentAvailable] = domain.NewDeploymentState(domain.DeploymentAvailable, deployment.Status.States[domain.DeploymentAvailable].Active,
-			deployment.Status.States[domain.DeploymentAvailable].Message, time.Now().Unix(), deployment.Status.States[domain.DeploymentAvailable].LastUpdateTimestamp)
+			deployment.Status.States[domain.DeploymentAvailable].Message, time.Now().Unix(), time.Now().Unix())
+
 		deployment.Status.States[domain.DeploymentProgress] = domain.NewDeploymentState(domain.DeploymentProgress, deployment.Status.States[domain.DeploymentProgress].Active,
 			deployment.Status.States[domain.DeploymentProgress].Message, time.Now().Unix(), time.Now().Unix())
+
+		// deployment.Status.States[domain.DeploymentFailure] = domain.NewDeploymentState(domain.DeploymentFailure, deployment.Status.States[domain.DeploymentFailure].Active,
+		// 	deployment.Status.States[domain.DeploymentFailure].Message, time.Now().Unix(), deployment.Status.States[domain.DeploymentFailure].LastUpdateTimestamp)
 		deployment.Status.States[domain.DeploymentFailure] = domain.NewDeploymentState(domain.DeploymentFailure, deployment.Status.States[domain.DeploymentFailure].Active,
-			deployment.Status.States[domain.DeploymentFailure].Message, time.Now().Unix(), deployment.Status.States[domain.DeploymentFailure].LastUpdateTimestamp)
+			deployment.Status.States[domain.DeploymentFailure].Message, time.Now().Unix(), time.Now().Unix())
+
+		deployment.Status.Stopped = false
+		deployment.Status.Deleted = false
 	}
 
-	err = u.deploymentRepo.Put(deployment)
+	log.Println("ADD DEPLOYMENT MOMENT")
+	err = u.SaveDeployment(&deployment)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -175,4 +188,72 @@ func (u UpdateServiceGrpcHandler) GetDeploymentOwnedRevisions(ctx context.Contex
 	}
 
 	return protoResp, nil
+}
+
+func (u UpdateServiceGrpcHandler) DeleteDeployment(ctx context.Context, req *api.DeleteDeploymentReq) (*api.DeleteDeploymentResp, error) {
+
+	d, err := u.deploymentRepo.Get(req.Name, req.Namespace, req.OrgId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	topic := fmt.Sprintf("deployments/%s/%s/%s", d.OrgId, d.Namespace, d.Name)
+	if u.workerMap.Exists(topic) {
+		task := worker.WorkerTask{
+			TaskType:            worker.TaskTypeDelete,
+			DeploymentName:      req.Name,
+			DeploymentNamespace: req.Namespace,
+			DeploymentOrgId:     req.OrgId,
+			Payload:             map[string]interface{}{}}
+
+		resp, err := u.sendTaskAndSubscribe(ctx, task)
+		if err != nil {
+			return nil, err
+		}
+		if resp.ErrorMsg != "" {
+			return nil, utils.TaskResponseToGrpcError(resp)
+		}
+	} else {
+		err := u.revisionRepo.DeleteDeploymentOwnedRevisions(map[string]string{}, req.Namespace, req.OrgId)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		err = u.deploymentRepo.Delete(req.Name, req.Namespace, req.OrgId)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	return &api.DeleteDeploymentResp{}, nil
+}
+
+func (u UpdateServiceGrpcHandler) StopDeployment(ctx context.Context, req *api.StopDeploymentReq) (*api.StopDeploymentResp, error) {
+
+	d, err := u.deploymentRepo.Get(req.Name, req.Namespace, req.OrgId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	topic := fmt.Sprintf("deployments/%s/%s/%s", d.OrgId, d.Namespace, d.Name)
+	if u.workerMap.Exists(topic) {
+
+		task := worker.WorkerTask{
+			TaskType:            worker.TaskTypeStop,
+			DeploymentName:      req.Name,
+			DeploymentNamespace: req.Namespace,
+			DeploymentOrgId:     req.OrgId,
+			Payload:             map[string]interface{}{}}
+
+		resp, err := u.sendTaskAndSubscribe(ctx, task)
+		if err != nil {
+			return nil, err
+		}
+		if resp.ErrorMsg != "" {
+			return nil, utils.TaskResponseToGrpcError(resp)
+		}
+	} else {
+		fmt.Println("Worker not found, deployment is already not running")
+	}
+
+	return &api.StopDeploymentResp{}, nil
 }

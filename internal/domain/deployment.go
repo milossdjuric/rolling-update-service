@@ -25,11 +25,13 @@ type DeploymentSpec struct {
 	MinReadySeconds   int64
 	DeadlineExceeded  int64
 	AutomaticRollback bool
+	Mode              DeploymentMode
 }
 
 type DeploymentRepo interface {
 	Put(deployment Deployment) error
 	Get(name, namespace, orgId string) (*Deployment, error)
+	Delete(name, namespace, orgId string) error
 }
 
 type DeploymentMarshaller interface {
@@ -45,6 +47,8 @@ type DeploymentStatus struct {
 	UnavailableAppCount int64
 	States              map[DeploymentStateType]DeploymentState
 	Paused              bool
+	Stopped             bool
+	Deleted             bool
 }
 
 type DeploymentStateType string
@@ -56,16 +60,24 @@ const (
 )
 
 type DeploymentState struct {
-	Type DeploymentStateType
-
-	Active bool
-
-	LastUpdateTimestamp int64
-
+	Type                    DeploymentStateType
+	Active                  bool
+	LastUpdateTimestamp     int64
 	LastTransitionTimestamp int64
-
-	Message string
+	Message                 string
 }
+
+type DeploymentMode string
+
+// How the applications will be deployed:
+// DirectDockerDaemon - directly from service to the docker daemon via docker socket
+// NodeAgentDirectDockerDaemon - to node agent which is connected to the docker daemon via docker socket
+// NodeAgentSeperateDockerDaemon - to node agent which has its own docker daemon running on it
+const (
+	DirectDockerDaemon            DeploymentMode = "DirectDocker"
+	NodeAgentDirectDockerDaemon   DeploymentMode = "DirectStar"
+	NodeAgentIndirectDockerDaemon DeploymentMode = "IndirectStar"
+)
 
 type DeploymentStrategy struct {
 	Type DeploymentStategyType
@@ -96,7 +108,7 @@ func NewDeployment(name string, namespace string, orgId string, labels map[strin
 	}
 }
 
-func NewDeploymentSpec(selectorLabels map[string]string, appCount int64, revisionLimit *int64, strategy DeploymentStrategy, appSpec AppSpec, minReadySeconds int64, deadlineExceeded int64, automaticRollback bool) DeploymentSpec {
+func NewDeploymentSpec(selectorLabels map[string]string, appCount int64, revisionLimit *int64, strategy DeploymentStrategy, appSpec AppSpec, minReadySeconds int64, deadlineExceeded int64, automaticRollback bool, mode DeploymentMode) DeploymentSpec {
 
 	calculatedQuotas := utils.CalculateResourceQuotas(appCount, appSpec.Quotas)
 
@@ -115,6 +127,7 @@ func NewDeploymentSpec(selectorLabels map[string]string, appCount int64, revisio
 		MinReadySeconds:   minReadySeconds,
 		DeadlineExceeded:  deadlineExceeded,
 		AutomaticRollback: automaticRollback,
+		Mode:              mode,
 	}
 }
 
@@ -165,6 +178,7 @@ func SetDeploymentStatus(status DeploymentStatus) DeploymentStatus {
 		UnavailableAppCount: status.UnavailableAppCount,
 		States:              make(map[DeploymentStateType]DeploymentState),
 		Paused:              status.Paused,
+		Stopped:             status.Stopped,
 	}
 
 	for k, v := range status.States {

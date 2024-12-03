@@ -6,19 +6,17 @@ import (
 	"fmt"
 	"log"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/milossdjuric/rolling_update_service/internal/domain"
 	"github.com/milossdjuric/rolling_update_service/internal/utils"
 	"github.com/milossdjuric/rolling_update_service/internal/worker"
-	"golang.org/x/exp/rand"
 )
 
-func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Deployment) {
+func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Deployment, stopChan chan struct{}) {
 
 	//check if context for gorotine is interrupted
-	if u.IsContextInterrupted(ctx) {
+	if IsContextInterrupted(ctx) {
 		return
 	}
 
@@ -30,7 +28,7 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 	}
 
 	// log.Printf("New revision: %v, Old revisions: %v", newRevision, oldRevisions)
-	if u.IsContextInterrupted(ctx) {
+	if IsContextInterrupted(ctx) {
 		return
 	}
 
@@ -41,7 +39,7 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 
 	totalRevisions := append(oldRevisions, *newRevision)
 
-	if u.IsContextInterrupted(ctx) {
+	if IsContextInterrupted(ctx) {
 		return
 	}
 
@@ -56,16 +54,30 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		nodeIds = append(nodeIds, node.Id)
 	}
 
-	// nodeIds := []string{"star_1", "star_2", "star_3"}
-
-	if u.IsContextInterrupted(ctx) {
+	if IsContextInterrupted(ctx) {
 		return
 	}
 
-	totalApps, newApps, readyApps, availableApps, oldApps, err := u.GetApps(d, newRevision, oldRevisions, nodeIds...)
+	totalApps := make([]domain.App, 0)
+	newApps := make([]domain.App, 0)
+	readyApps := make([]domain.App, 0)
+	availableApps := make([]domain.App, 0)
+	oldApps := make([]domain.App, 0)
+
+	// if direct docker daemon, call direct methods, use func for docker containers
+	// if node agent direct docker daemon, call direct methods, use func for star containers
+	// if node agent indirect docker daemon, call indirect methods, use func for star containers
+
+	if d.Spec.Mode == domain.DirectDockerDaemon || d.Spec.Mode == domain.NodeAgentDirectDockerDaemon {
+		totalApps, newApps, readyApps, availableApps, oldApps, err = u.GetAppsDirect(d, newRevision, oldRevisions, nodeIds...)
+	} else if d.Spec.Mode == domain.NodeAgentDirectDockerDaemon {
+		totalApps, newApps, readyApps, availableApps, oldApps, err = u.GetAppsIndirect(d, newRevision, oldRevisions, nodeIds...)
+	}
 	if err != nil {
+		log.Println("Failed to get apps:", err)
 		return
 	}
+
 	log.Printf("Total apps: %v, New apps: %v, Ready apps: %v, Available apps: %v, Old apps: %v", int64(len(totalApps)), int64(len(newApps)), int64(len(readyApps)), int64(len(availableApps)), int64(len(oldApps)))
 
 	d.Status.TotalAppCount = int64(len(totalApps))
@@ -74,7 +86,7 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 	d.Status.AvailableAppCount = int64(len(availableApps))
 	d.Status.UnavailableAppCount = d.Status.TotalAppCount - d.Status.AvailableAppCount
 
-	if u.IsContextInterrupted(ctx) {
+	if IsContextInterrupted(ctx) {
 		return
 	}
 
@@ -87,26 +99,79 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 	// log.Printf("Active revisions: %v, Active revisions app count: %v", activeRevisions, activeRevisionsAppCount)
 	log.Printf("New revison app count: %v", activeRevisionsAppCount[newRevision.Name])
 
-	if u.IsContextInterrupted(ctx) {
+	if IsContextInterrupted(ctx) {
 		return
 	}
 
-	err = u.UpdateStatusStates(d, activeRevisionsAppCount[newRevision.Name])
+	if d.Status.Stopped {
+		stopResChan := make(chan error, 1)
+		go func() {
+			log.Println("STOPPING deployment")
+			err := u.Stop(d, newRevision, oldRevisions, activeRevisions, activeRevisionsAppCount, totalApps, availableApps, nodeIds...)
+			stopResChan <- err
+			close(stopResChan)
+		}()
+		go func() {
+			for err := range stopResChan {
+				if err != nil {
+					log.Printf("Error stopping deployment %s: %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), err)
+				} else {
+					log.Printf("Deployment stopping operation successful %s", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
+				}
+			}
+		}()
+
+		log.Println("AFTER STOPPING GOROUTINES")
+		log.Println("Len of total apps:", len(totalApps))
+		if len(totalApps) > 0 {
+			// Interrupt stopping, so it doesnt send signal to stopChan
+			log.Println("Apps still exist, interrupting stop signal")
+			return
+		}
+		//if not marked for deletion, send stop signal, if it is proceed
+		if !d.Status.Deleted {
+			log.Println("Stop signal sent")
+			go func() {
+				stopChan <- struct{}{}
+			}()
+			log.Println("Stop signal sent x2")
+			return
+		}
+	}
+	if d.Status.Deleted {
+		if len(totalApps) != 0 {
+			//interrupt roll
+			return
+		}
+		err := u.revisionRepo.DeleteDeploymentOwnedRevisions(d.Spec.SelectorLabels, d.Namespace, d.OrgId)
+		if err != nil {
+			log.Printf("Failed to delete deployment owned revisions: %v", err)
+		}
+		err = u.deploymentRepo.Delete(d.Name, d.Namespace, d.OrgId)
+		if err != nil {
+			log.Printf("Failed to delete deployment %s: %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), err)
+		}
+
+		go func() {
+			stopChan <- struct{}{}
+		}()
+		return
+	}
+
+	if IsContextInterrupted(ctx) {
+		return
+	}
+
+	err = UpdateStatusStates(d, activeRevisionsAppCount[newRevision.Name])
 	if err != nil {
 		return
 	}
 	log.Printf("Deployment status states: Progress - %v, Available - %v, Failure - %v", d.Status.States[domain.DeploymentProgress].Active, d.Status.States[domain.DeploymentAvailable].Active, d.Status.States[domain.DeploymentFailure].Active)
 	log.Printf("Deployment status states messages: Progress - %v, Available - %v, Failure - %v", d.Status.States[domain.DeploymentProgress].Message, d.Status.States[domain.DeploymentAvailable].Message, d.Status.States[domain.DeploymentFailure].Message)
 
-	if u.IsContextInterrupted(ctx) {
+	if IsContextInterrupted(ctx) {
 		return
 	}
-
-	// if len(totalRevisions)%3 == 0 && len(totalRevisions) > 0 {
-	// 	log.Println("TOO MANY REVS TRIGGERED")
-	// 	log.Println("Automatic ROllback: ", d.Spec.AutomaticRollback)
-	// 	d.Status.States[domain.DeploymentFailure] = domain.NewDeploymentState(domain.DeploymentFailure, true, "Too many revisions", time.Now().Unix(), time.Now().Unix())
-	// }
 
 	if d.Status.States[domain.DeploymentFailure].Active && d.Spec.AutomaticRollback {
 		log.Printf("Deployment failed, automatically rolling back")
@@ -116,34 +181,58 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		}
 	}
 
-	if u.IsContextInterrupted(ctx) {
+	if IsContextInterrupted(ctx) {
 		return
 	}
 
-	if d.Status.States[domain.DeploymentProgress].Active && !d.Status.States[domain.DeploymentFailure].Active && !d.Status.Paused {
-		resChan := make(chan error, 1)
+	if d.Status.States[domain.DeploymentProgress].Active &&
+		!d.Status.States[domain.DeploymentFailure].Active && !d.Status.Paused {
 		go func() {
 			log.Println("ROLLING deployment")
 			err := u.Roll(d, newRevision, oldRevisions, activeRevisions, activeRevisionsAppCount, totalApps, availableApps, nodeIds...)
-			resChan <- err
-		}()
-		go func() {
-			select {
-			case err := <-resChan:
-				if err != nil {
-					log.Printf("Error rolling deployment %s: %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), err)
-				} else {
-					log.Printf("Deployment rolling operation successfull %s", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
-				}
+			if err != nil {
+				log.Printf("Error rolling deployment %s: %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), err)
+			} else {
+				log.Printf("Deployment rolling operation successful %s", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 			}
 		}()
 	}
 
-	if u.IsContextInterrupted(ctx) {
+	// if d.Status.States[domain.DeploymentProgress].Active && !d.Status.States[domain.DeploymentFailure].Active && !d.Status.Paused {
+	// 	resChan := make(chan error, 1)
+	// 	go func() {
+	// 		log.Println("ROLLING deployment")
+	// 		err := u.Roll(d, newRevision, oldRevisions, activeRevisions, activeRevisionsAppCount, totalApps, availableApps, nodeIds...)
+	// 		resChan <- err
+	// 	}()
+	// 	go func() {
+	// 		select {
+	// 		case err := <-resChan:
+	// 			if err != nil {
+	// 				log.Printf("Error rolling deployment %s: %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), err)
+	// 			} else {
+	// 				log.Printf("Deployment rolling operation successfull %s", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
+	// 			}
+	// 		}
+	// 	}()
+	// }
+
+	if IsContextInterrupted(ctx) {
 		return
 	}
 
+	log.Println("RECONCILE SAVE MOMENT")
 	u.SaveDeployment(d)
+}
+
+func (u *UpdateServiceGrpcHandler) Stop(d *domain.Deployment, newRevision *domain.Revision, oldRevisions, activeRevisions []domain.Revision, activeRevisionsAppCount map[string]int64, totalApps, availableApps []domain.App, nodeIds ...string) error {
+	err := u.StopApps(d, int(len(totalApps)), totalApps, nodeIds...)
+	if err != nil {
+		log.Println("STOP DEPLOYMENT: stop unavailable apps error:", err)
+		return err
+	}
+
+	return nil
 }
 
 func (u *UpdateServiceGrpcHandler) GetNewAndOldRevisions(d *domain.Deployment) (*domain.Revision, []domain.Revision, error) {
@@ -155,7 +244,7 @@ func (u *UpdateServiceGrpcHandler) GetNewAndOldRevisions(d *domain.Deployment) (
 
 	// log.Println("All revisions:", allRevisions)
 
-	newRevision, err := u.GetNewRevision(d, allRevisions)
+	newRevision, err := GetNewRevision(d, allRevisions)
 	// log.Printf("New Revision: %v", newRevision)
 	if err != nil {
 		return nil, nil, err
@@ -171,7 +260,7 @@ func (u *UpdateServiceGrpcHandler) GetNewAndOldRevisions(d *domain.Deployment) (
 	return newRevision, oldRevisions, nil
 }
 
-func (u *UpdateServiceGrpcHandler) GetNewRevision(d *domain.Deployment, revisions []domain.Revision) (*domain.Revision, error) {
+func GetNewRevision(d *domain.Deployment, revisions []domain.Revision) (*domain.Revision, error) {
 
 	log.Println("Getting new revision")
 
@@ -252,6 +341,7 @@ func (u *UpdateServiceGrpcHandler) Rollback(d *domain.Deployment, revisionName s
 	}
 	delete(rollbackRevision.Spec.SelectorLabels, "revision")
 	delete(rollbackRevision.Spec.AppSpec.SelectorLabels, "revision")
+
 	rollbackRevision.Name = utils.GenerateUniqueName(d.Name)
 	rollbackRevision.Spec.SelectorLabels["revision"] = rollbackRevision.Name
 	rollbackRevision.Spec.AppSpec.SelectorLabels["revision"] = rollbackRevision.Name
@@ -274,7 +364,7 @@ func (u *UpdateServiceGrpcHandler) Rollback(d *domain.Deployment, revisionName s
 		}
 	}
 
-	//update
+	//update status states
 	d.Status.States[domain.DeploymentFailure] = domain.NewDeploymentState(domain.DeploymentFailure, false, "Deployment in rollback", time.Now().Unix(), time.Now().Unix())
 	d.Status.States[domain.DeploymentProgress] = domain.NewDeploymentState(domain.DeploymentProgress, true, "Deployment in rollback", time.Now().Unix(), time.Now().Unix())
 	d.Status.States[domain.DeploymentAvailable] = domain.NewDeploymentState(domain.DeploymentAvailable, d.Status.States[domain.DeploymentAvailable].Active, d.Status.States[domain.DeploymentProgress].Message, time.Now().Unix(), d.Status.States[domain.DeploymentAvailable].LastTransitionTimestamp)
@@ -313,9 +403,9 @@ func (u *UpdateServiceGrpcHandler) ReconcileNewRevision(d *domain.Deployment, ne
 	// currentDeploymentAppCount := int64(len(activeRevisionsAppCount))
 	maxDeploymentAppCount := d.Spec.AppCount + maxSurge
 
-	log.Println("RECONCILE NEW REVISION: current deployment app count:", currentDeploymentAppCount)
-	log.Println("RECONCILE NEW REVISION: max deployment app count:", maxDeploymentAppCount)
-	log.Println("RECONCILE NEW REVISION: max surge:", maxSurge)
+	// log.Println("RECONCILE NEW REVISION: current deployment app count:", currentDeploymentAppCount)
+	// log.Println("RECONCILE NEW REVISION: max deployment app count:", maxDeploymentAppCount)
+	// log.Println("RECONCILE NEW REVISION: max surge:", maxSurge)
 
 	if currentDeploymentAppCount >= maxDeploymentAppCount {
 		newRevisionAppCount = activeRevisionsAppCount[newRevision.Name]
@@ -325,8 +415,8 @@ func (u *UpdateServiceGrpcHandler) ReconcileNewRevision(d *domain.Deployment, ne
 		newRevisionAppCount = activeRevisionsAppCount[newRevision.Name] + scaleUpCount
 	}
 
-	log.Println("RECONCILE NEW REVISION: scale up count:", newRevisionAppCount)
-	log.Println("RECONCILE NEW REVISION: new revision app count:", newRevisionAppCount)
+	// log.Println("RECONCILE NEW REVISION: scale up count:", newRevisionAppCount)
+	// log.Println("RECONCILE NEW REVISION: new revision app count:", newRevisionAppCount)
 
 	err := u.ScaleRevision(d, newRevision, newRevisionAppCount, activeRevisionsAppCount, newApps, nodeIds...)
 	if err != nil {
@@ -336,6 +426,8 @@ func (u *UpdateServiceGrpcHandler) ReconcileNewRevision(d *domain.Deployment, ne
 }
 
 func (u *UpdateServiceGrpcHandler) ReconcileOldRevisions(d *domain.Deployment, newRevision *domain.Revision, oldRevisions, activeRevisions []domain.Revision, activeRevisionsAppCount map[string]int64, newAvailableAppCount int64, totalApps, availableApps []domain.App, nodeIds ...string) error {
+
+	var err error
 
 	//old apps count
 	oldAppsCount := int64(0)
@@ -349,19 +441,19 @@ func (u *UpdateServiceGrpcHandler) ReconcileOldRevisions(d *domain.Deployment, n
 		}
 	}
 
-	log.Println("RECONCILE OLD REVISIONS: old apps count:", oldAppsCount)
+	// log.Println("RECONCILE OLD REVISIONS: old apps count:", oldAppsCount)
 
 	allAppsCount := int64(0)
 	allAppsCount += oldAppsCount
 	allAppsCount += activeRevisionsAppCount[newRevision.Name]
 
-	log.Println("RECONCILE OLD REVISIONS: all apps count:", allAppsCount)
+	// log.Println("RECONCILE OLD REVISIONS: all apps count:", allAppsCount)
 
 	maxUnavailable := d.Spec.Strategy.RollingUpdate.MaxUnavailable
 	minAvailable := d.Spec.AppCount - *maxUnavailable
 
-	log.Println("RECONCILE OLD REVISIONS: max unavailable:", *maxUnavailable)
-	log.Println("RECONCILE OLD REVISIONS: min available:", minAvailable)
+	// log.Println("RECONCILE OLD REVISIONS: max unavailable:", *maxUnavailable)
+	// log.Println("RECONCILE OLD REVISIONS: min available:", minAvailable)
 
 	newRevisionUnavailableAppCount := activeRevisionsAppCount[newRevision.Name] - newAvailableAppCount
 	maxScaledDown := allAppsCount - minAvailable - newRevisionUnavailableAppCount
@@ -369,28 +461,28 @@ func (u *UpdateServiceGrpcHandler) ReconcileOldRevisions(d *domain.Deployment, n
 		return nil
 	}
 
-	log.Println("RECONCILE OLD REVISIONS: new revision unavailable app count:")
-	log.Println("RECONCILE OLD REVISIONS: max scaled down:", maxScaledDown)
+	// log.Println("RECONCILE OLD REVISIONS: new revision unavailable app count:")
+	// log.Println("RECONCILE OLD REVISIONS: max scaled down:", maxScaledDown)
 
 	oldUnavailableApps := GetOldUnavailableApps(totalApps, availableApps, newRevision)
 
-	log.Println("RECONCILE OLD REVISIONS: old unavailable apps:", len(oldUnavailableApps))
+	// log.Println("RECONCILE OLD REVISIONS: old unavailable apps:", len(oldUnavailableApps))
 
-	log.Println("RECONCILE OLD REVISIONS: stop unavailable apps CHECKPOINT")
+	// log.Println("RECONCILE OLD REVISIONS: stop unavailable apps CHECKPOINT")
 
 	//Scale down unavailable/unhealthy old apps
 	stopAppsArgs := append(nodeIds, d.OrgId)
 	stopAppsArgs = append(stopAppsArgs, d.Namespace)
-	err := u.StopApps(int(maxScaledDown), oldUnavailableApps, u.StopStarContainer, stopAppsArgs...)
+
+	err = u.StopApps(d, int(maxScaledDown), oldUnavailableApps, stopAppsArgs...)
 	if err != nil {
 		log.Println("RECONCILE OLD REVISIONS: stop unavailable apps error:", err)
-		return err
 	}
 
 	//Add downscale of available apps
 	availableAppsCount := int64(len(availableApps))
 
-	log.Println("RECONCILE OLD REVISIONS: available apps count:", availableAppsCount)
+	// log.Println("RECONCILE OLD REVISIONS: available apps count:", availableAppsCount)
 
 	totalScaledDown := int64(0)
 	totalScaledDownCount := availableAppsCount - minAvailable
@@ -411,18 +503,18 @@ func (u *UpdateServiceGrpcHandler) ReconcileOldRevisions(d *domain.Deployment, n
 			return errors.New("invalid request to scale down")
 		}
 
-		log.Printf("RECONCILE OLD REVISIONS: scaling revision %s", revision.Name)
-		log.Println("RECONCILE OLD REVISIONS: new apps count:", newAppsCount)
+		// log.Printf("RECONCILE OLD REVISIONS: scaling revision %s", revision.Name)
+		// log.Println("RECONCILE OLD REVISIONS: new apps count:", newAppsCount)
 		err := u.ScaleRevision(d, &revision, newAppsCount, activeRevisionsAppCount, oldApps, nodeIds...)
 		if err != nil {
 			return err
 		}
-		log.Println("RECONCILE OLD REVISIONS: scaled down count:", scaleDownCount)
+		// log.Println("RECONCILE OLD REVISIONS: scaled down count:", scaleDownCount)
 		totalScaledDown += scaleDownCount
-		log.Println("RECONCILE OLD REVISIONS: total scaled down:", totalScaledDown)
+		// log.Println("RECONCILE OLD REVISIONS: total scaled down:", totalScaledDown)
 	}
 
-	log.Println("RECONCILE OLD REVISIONS: final total scaled down:", totalScaledDown)
+	// log.Println("RECONCILE OLD REVISIONS: final total scaled down:", totalScaledDown)
 	totalScaledDown += int64(len(oldUnavailableApps))
 
 	return nil
@@ -443,130 +535,22 @@ func (u *UpdateServiceGrpcHandler) ScaleRevision(d *domain.Deployment, revision 
 		//Scale up
 		scaleDirection = worker.ScaleUp
 		log.Printf("Scaling %s %s, Old size: %d, New size: %d", revision.Name, scaleDirection, oldSize, newSize)
-		startAppsArgs := append(nodeIds, revision.OrgId)
-		startAppsArgs = append(startAppsArgs, revision.Namespace)
-		log.Println("START APPS SUPPOSED NODES: ", nodeIds)
-		log.Println("START APPS ARGS: ", startAppsArgs)
-		successes, err := u.StartAppsBatch(newSize-oldSize, func(extraArgs ...string) error {
-			// change method for start apps if needed
-			// return u.StartDockerContainer(revision.Name, revision.Spec.AppSpec.SelectorLabels)
-			return u.StartStarContainer(revision.Name, revision.Spec.AppSpec.SelectorLabels, extraArgs...)
-		}, startAppsArgs...)
+
+		err := u.StartApps(d, revision, int64(newSize-oldSize), nodeIds...)
 		if err != nil {
-			log.Println("Start apps batch error:", err)
 			return err
 		}
-		log.Println("Successes number:", successes)
 	} else {
 		//Scale down
 		scaleDirection = worker.ScaleDown
 		log.Printf("Scaling %s %s, Old size: %d, New size: %d", revision.Name, scaleDirection, oldSize, newSize)
-		stopAppsArgs := append(nodeIds, revision.OrgId)
-		stopAppsArgs = append(stopAppsArgs, revision.Namespace)
-		err := u.StopApps(int(oldSize-newSize), apps, u.StopStarContainer, stopAppsArgs...)
+
+		err := u.StopApps(d, int(oldSize-newSize), apps, nodeIds...)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (u *UpdateServiceGrpcHandler) StopApps(appCount int, apps []domain.App, fn func(name string, extraArgs ...string) error, extraArgs ...string) error {
-
-	log.Printf("Apps len: %d", len(apps))
-	orgId := extraArgs[len(extraArgs)-1]
-	namespace := extraArgs[len(extraArgs)-2]
-	nodeIds := extraArgs[:len(extraArgs)-2]
-
-	appsToDelete := make([]domain.App, 0)
-	if appCount >= len(apps) {
-		appsToDelete = append(appsToDelete, apps...)
-	} else {
-		appsToDelete = append(appsToDelete, apps[len(apps)-appCount:]...)
-	}
-
-	log.Printf("Stopping %d apps", len(appsToDelete))
-
-	errChan := make(chan error, len(appsToDelete))
-	var waitGroup sync.WaitGroup
-
-	waitGroup.Add(len(appsToDelete))
-	for _, app := range appsToDelete {
-		for _, nodeId := range nodeIds {
-			go func(targetApp domain.App) {
-				defer waitGroup.Done()
-				if err := fn(targetApp.Name, orgId, namespace, nodeId); err != nil {
-					errChan <- err
-				}
-			}(app)
-		}
-	}
-	waitGroup.Wait()
-
-	deletedApps := 0
-	for err := range errChan {
-		if err == nil {
-			deletedApps++
-		}
-		if deletedApps >= appCount {
-			return nil
-		}
-	}
-	return fmt.Errorf("failed to stop %d apps", appCount)
-}
-
-func (u *UpdateServiceGrpcHandler) StartAppsBatch(appCount int64, fn func(...string) error, extraArgs ...string) (int, error) {
-
-	orgId := extraArgs[len(extraArgs)-2]
-	namespace := extraArgs[len(extraArgs)-1]
-	nodeIds := extraArgs[:len(extraArgs)-2]
-
-	log.Println("START APPS BATCH EXTRA ARGS: ", extraArgs)
-	log.Println("START APPS BATCH: orgId ", orgId)
-	log.Println("START APPS BATCH: namespace ", namespace)
-	log.Println("START APPS BATCH: nodeIds ", nodeIds)
-
-	remaining := int(appCount)
-	successes := 0
-	batchSize := 1
-
-	log.Println("START APPS BATCH: appCount ", appCount)
-
-	errChan := make(chan error, batchSize)
-	var waitGroup sync.WaitGroup
-	r := rand.New(rand.NewSource(uint64(time.Now().Unix())))
-
-	for remaining > 0 {
-		effectiveBatchSize := min(batchSize, remaining)
-		log.Println("Effective Batch size:", effectiveBatchSize)
-
-		waitGroup.Add(effectiveBatchSize)
-		for i := 0; i < effectiveBatchSize; i++ {
-			// Select a random nodeId for each goroutine
-			nodeId := nodeIds[r.Intn(len(nodeIds))]
-
-			go func(nodeId string) {
-				defer waitGroup.Done()
-				// Pass orgId, namespace, and random nodeId as arguments to the function
-				if err := fn(orgId, namespace, nodeId); err != nil {
-					errChan <- err
-				}
-			}(nodeId)
-		}
-
-		waitGroup.Wait()
-		currentSuccesses := effectiveBatchSize - len(errChan)
-		successes += currentSuccesses
-
-		if len(errChan) > 0 {
-			return successes, <-errChan
-		}
-
-		batchSize *= 2
-		remaining -= effectiveBatchSize
-		errChan = make(chan error, batchSize)
-	}
-	return successes, nil
 }
 
 func (u *UpdateServiceGrpcHandler) GetActiveRevisions(d *domain.Deployment, revisions []domain.Revision, apps []domain.App) ([]domain.Revision, map[string]int64, error) {
@@ -595,10 +579,8 @@ func (u *UpdateServiceGrpcHandler) GetActiveRevisions(d *domain.Deployment, revi
 	return activeRevisions, activeRevisionsAppCount, nil
 }
 
-func (u *UpdateServiceGrpcHandler) UpdateStatusStates(d *domain.Deployment, availableNewRevisionAppCount int64) error {
+func UpdateStatusStates(d *domain.Deployment, availableNewRevisionAppCount int64) error {
 	//Should update status, based on its count, previous status, timestamps and other fields
-
-	// d.Status.AvailableAppCount == d.Status.TotalAppCount &&
 
 	if d.Status.AvailableAppCount >= d.Spec.AppCount-*d.Spec.Strategy.RollingUpdate.MaxUnavailable && d.Status.AvailableAppCount > 0 {
 		d.Status.States[domain.DeploymentAvailable] = domain.NewDeploymentState(domain.DeploymentAvailable, true, "Deployment available", d.Status.States[domain.DeploymentAvailable].LastUpdateTimestamp, time.Now().Unix())
@@ -615,149 +597,15 @@ func (u *UpdateServiceGrpcHandler) UpdateStatusStates(d *domain.Deployment, avai
 
 	if d.Status.States[domain.DeploymentProgress].Active {
 		log.Println("Deployment in progress")
-		if u.IsDeadlineExceeded(d, d.Status.States[domain.DeploymentProgress].LastTransitionTimestamp) && !d.Status.Paused {
+		// if IsDeadlineExceeded(d, d.Status.States[domain.DeploymentProgress].LastTransitionTimestamp) && !d.Status.Paused {
+		if IsDeadlineExceeded(d, d.Status.States[domain.DeploymentProgress].LastUpdateTimestamp) && !d.Status.Paused {
 			log.Println("Deadline now exceeded")
 			d.Status.States[domain.DeploymentProgress] = domain.NewDeploymentState(domain.DeploymentProgress, false, "Deadline exceeded", d.Status.States[domain.DeploymentProgress].LastUpdateTimestamp, time.Now().Unix())
-			d.Status.States[domain.DeploymentFailure] = domain.NewDeploymentState(domain.DeploymentFailure, true, "Deadline exceeded", d.Status.States[domain.DeploymentFailure].LastUpdateTimestamp, time.Now().Unix())
+			d.Status.States[domain.DeploymentFailure] = domain.NewDeploymentState(domain.DeploymentFailure, true, "Deadline exceeded, failed", d.Status.States[domain.DeploymentFailure].LastUpdateTimestamp, time.Now().Unix())
 		} else {
 			d.Status.States[domain.DeploymentFailure] = domain.NewDeploymentState(domain.DeploymentFailure, false, "Deployment has not failed", d.Status.States[domain.DeploymentFailure].LastUpdateTimestamp, time.Now().Unix())
 		}
 	}
 
 	return nil
-}
-
-func (u *UpdateServiceGrpcHandler) GetRevisionOwnedApps(d *domain.Deployment, r *domain.Revision, fn func(name string, selectorLables map[string]string, extraArgs ...string) ([]domain.App, error), nodeIds ...string) ([]domain.App, error) {
-	//Get all apps that are owned by the given revision
-	namePrefix := r.Name
-
-	// apps, err := fn(namePrefix, r.Spec.SelectorLabels)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	apps := make([]domain.App, 0)
-	var mu sync.Mutex
-	var waitGroup sync.WaitGroup
-	for _, nodeId := range nodeIds {
-		waitGroup.Add(1)
-		go func(nodeId string) {
-			defer waitGroup.Done()
-			nodeApps, err := fn(namePrefix, r.Spec.SelectorLabels, d.OrgId, d.Namespace, nodeId)
-			if err != nil {
-				return
-			}
-			mu.Lock()
-			apps = append(apps, nodeApps...)
-			mu.Unlock()
-		}(nodeId)
-	}
-	waitGroup.Wait()
-
-	return apps, nil
-}
-
-func (u *UpdateServiceGrpcHandler) GetReadyApps(d *domain.Deployment, apps []domain.App, fn func(string, ...string) (bool, error), nodeIds ...string) ([]domain.App, error) {
-	//Get all apps that are ready, readiness could be registered by probing perhaps
-	readyApps := make([]domain.App, 0)
-	var mu sync.Mutex
-	var waitGroup sync.WaitGroup
-
-	for _, app := range apps {
-		for _, nodeId := range nodeIds {
-			waitGroup.Add(1)
-			go func(app domain.App) {
-				defer waitGroup.Done()
-
-				isReady, err := fn(app.Name, d.OrgId, d.Namespace, nodeId)
-				if err != nil {
-					return
-				}
-				if isReady {
-					mu.Lock()
-					readyApps = append(readyApps, app)
-					mu.Unlock()
-				}
-			}(app)
-		}
-	}
-	waitGroup.Wait()
-
-	return readyApps, nil
-}
-
-func (u *UpdateServiceGrpcHandler) GetAvailableApps(d *domain.Deployment, apps []domain.App, fn func(string, int64, ...string) (bool, error), nodeIds ...string) ([]domain.App, error) {
-	//Get all apps that are available, availability could be registered by min ready seconds passing, could perhaps need an
-	//app registry of sorts
-	availableApps := make([]domain.App, 0)
-	var mu sync.Mutex
-	var waitGroup sync.WaitGroup
-
-	for _, app := range apps {
-		for _, nodeId := range nodeIds {
-			waitGroup.Add(1)
-			go func(app domain.App) {
-				defer waitGroup.Done()
-
-				isAvailable, err := fn(app.Name, d.Spec.MinReadySeconds, d.OrgId, d.Namespace, nodeId)
-				if err != nil {
-					return
-				}
-				if isAvailable {
-					mu.Lock()
-					availableApps = append(availableApps, app)
-					mu.Unlock()
-				}
-			}(app)
-		}
-	}
-	waitGroup.Wait()
-
-	return availableApps, nil
-}
-
-func (u *UpdateServiceGrpcHandler) GetApps(d *domain.Deployment, newRevision *domain.Revision, oldRevisions []domain.Revision, nodeIds ...string) ([]domain.App,
-	[]domain.App, []domain.App, []domain.App, []domain.App, error) {
-
-	totalApps := make([]domain.App, 0)
-	newApps := make([]domain.App, 0)
-	oldApps := make([]domain.App, 0)
-
-	var mu sync.Mutex
-	var waitGroup sync.WaitGroup
-
-	for _, revision := range append(oldRevisions, *newRevision) {
-		waitGroup.Add(1)
-		go func(revision domain.Revision) {
-			defer waitGroup.Done()
-			revisionApps, err := u.GetRevisionOwnedApps(d, &revision, u.QueryStarContainers, nodeIds...)
-			if err != nil {
-				return
-			}
-			mu.Lock()
-			totalApps = append(totalApps, revisionApps...)
-			mu.Unlock()
-		}(revision)
-	}
-	waitGroup.Wait()
-
-	for _, app := range totalApps {
-		if utils.MatchLabels(newRevision.Spec.SelectorLabels, app.SelectorLabels) {
-			newApps = append(newApps, app)
-		} else {
-			oldApps = append(oldApps, app)
-		}
-	}
-
-	readyApps, err := u.GetReadyApps(d, totalApps, u.HealthCheckStarContainer, nodeIds...)
-	if err != nil {
-		return nil, nil, nil, nil, nil, err
-	}
-
-	availableApps, err := u.GetAvailableApps(d, readyApps, u.AvailabilityCheckStarContainer)
-	if err != nil {
-		return nil, nil, nil, nil, nil, err
-	}
-
-	return totalApps, newApps, readyApps, availableApps, oldApps, nil
 }

@@ -81,6 +81,22 @@ func (r revisionEtcdRepo) GetDeploymentOwnedRevisions(selectorLabels map[string]
 	return r.SelectRevisions(selectorLabels, keyPrefix)
 }
 
+func (r revisionEtcdRepo) DeleteDeploymentOwnedRevisions(selectorLabels map[string]string, namespace, orgId string) error {
+	keyPrefix := fmt.Sprintf("%s/orgs/%s/%s", revisionPrefix, orgId, namespace)
+
+	selectedRevisions, err := r.SelectRevisions(selectorLabels, keyPrefix)
+	if err != nil {
+		return err
+	}
+	for _, revision := range selectedRevisions {
+		err := r.Delete(revision.Name, revision.Namespace, revision.OrgId)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r revisionEtcdRepo) SelectRevisions(selectorLabels map[string]string, keyPrefix string) ([]domain.Revision, error) {
 
 	log.Printf("Revision etcd, keyPrefix: %s", keyPrefix)

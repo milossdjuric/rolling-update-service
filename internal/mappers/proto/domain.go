@@ -1,6 +1,8 @@
 package proto
 
 import (
+	"fmt"
+
 	"github.com/milossdjuric/rolling_update_service/internal/domain"
 	"github.com/milossdjuric/rolling_update_service/internal/utils"
 	"github.com/milossdjuric/rolling_update_service/pkg/api"
@@ -79,6 +81,12 @@ func DeploymentSpecToDomain(deploymentSpec *api.DeploymentSpec) (domain.Deployme
 		utils.CalculateDefaultRollingValue(rollingUpdate.MaxUnavailable, deploymentSpec.AppCount)
 	}
 
+	if deploymentSpec.Mode != string(domain.NodeAgentDirectDockerDaemon) &&
+		deploymentSpec.Mode != string(domain.NodeAgentIndirectDockerDaemon) &&
+		deploymentSpec.Mode != string(domain.DirectDockerDaemon) {
+		return resp, fmt.Errorf("invalid deployment mode")
+	}
+
 	resp = domain.DeploymentSpec{
 		SelectorLabels: deploymentSpec.SelectorLabels,
 		AppCount:       deploymentSpec.AppCount,
@@ -92,6 +100,7 @@ func DeploymentSpecToDomain(deploymentSpec *api.DeploymentSpec) (domain.Deployme
 		MinReadySeconds:   deploymentSpec.MinReadySeconds,
 		DeadlineExceeded:  deploymentSpec.DeadlineExceeded,
 		AutomaticRollback: deploymentSpec.AutomaticRollback,
+		Mode:              domain.DeploymentMode(deploymentSpec.Mode),
 	}
 
 	return resp, nil
@@ -121,6 +130,12 @@ func DeploymentSpecFromDomain(deploymentSpec domain.DeploymentSpec) (*api.Deploy
 		utils.CalculateDefaultRollingValue(rollingUpdate.MaxUnavailable, deploymentSpec.AppCount)
 	}
 
+	if deploymentSpec.Mode != domain.NodeAgentDirectDockerDaemon &&
+		deploymentSpec.Mode != domain.NodeAgentIndirectDockerDaemon &&
+		deploymentSpec.Mode != domain.DirectDockerDaemon {
+		return nil, fmt.Errorf("invalid deployment mode")
+	}
+
 	resp = &api.DeploymentSpec{
 		SelectorLabels: deploymentSpec.SelectorLabels,
 		AppCount:       deploymentSpec.AppCount,
@@ -137,6 +152,7 @@ func DeploymentSpecFromDomain(deploymentSpec domain.DeploymentSpec) (*api.Deploy
 		MinReadySeconds:   deploymentSpec.MinReadySeconds,
 		DeadlineExceeded:  deploymentSpec.DeadlineExceeded,
 		AutomaticRollback: deploymentSpec.AutomaticRollback,
+		Mode:              string(deploymentSpec.Mode),
 	}
 
 	return resp, nil
@@ -155,6 +171,8 @@ func DeploymentStatusToDomain(status *api.DeploymentStatus) (domain.DeploymentSt
 		UnavailableAppCount: status.UnavailableAppCount,
 		States:              make(map[domain.DeploymentStateType]domain.DeploymentState),
 		Paused:              status.Paused,
+		Stopped:             status.Stopped,
+		Deleted:             status.Deleted,
 	}
 
 	for _, state := range status.States {
@@ -180,6 +198,8 @@ func DeploymentStatusFromDomain(deploymentStatus domain.DeploymentStatus) (*api.
 		UnavailableAppCount: deploymentStatus.UnavailableAppCount,
 		States:              make(map[string]*api.DeploymentState),
 		Paused:              deploymentStatus.Paused,
+		Stopped:             deploymentStatus.Stopped,
+		Deleted:             deploymentStatus.Deleted,
 	}
 
 	for _, state := range deploymentStatus.States {

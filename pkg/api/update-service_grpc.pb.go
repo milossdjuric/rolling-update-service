@@ -23,6 +23,10 @@ const (
 	UpdateService_GetDeployment_FullMethodName               = "/proto.UpdateService/GetDeployment"
 	UpdateService_GetDeploymentOwnedRevisions_FullMethodName = "/proto.UpdateService/GetDeploymentOwnedRevisions"
 	UpdateService_RollbackRevision_FullMethodName            = "/proto.UpdateService/RollbackRevision"
+	UpdateService_PauseDeployment_FullMethodName             = "/proto.UpdateService/PauseDeployment"
+	UpdateService_UnpauseDeployment_FullMethodName           = "/proto.UpdateService/UnpauseDeployment"
+	UpdateService_StopDeployment_FullMethodName              = "/proto.UpdateService/StopDeployment"
+	UpdateService_DeleteDeployment_FullMethodName            = "/proto.UpdateService/DeleteDeployment"
 )
 
 // UpdateServiceClient is the client API for UpdateService service.
@@ -33,6 +37,10 @@ type UpdateServiceClient interface {
 	GetDeployment(ctx context.Context, in *GetDeploymentReq, opts ...grpc.CallOption) (*GetDeploymentResp, error)
 	GetDeploymentOwnedRevisions(ctx context.Context, in *GetDeploymentOwnedRevisionsReq, opts ...grpc.CallOption) (*GetDeploymentOwnedRevisionsResp, error)
 	RollbackRevision(ctx context.Context, in *RollbackRevisionReq, opts ...grpc.CallOption) (*RollbackRevisionResp, error)
+	PauseDeployment(ctx context.Context, in *PauseDeploymentReq, opts ...grpc.CallOption) (*PauseDeploymentResp, error)
+	UnpauseDeployment(ctx context.Context, in *UnpauseDeploymentReq, opts ...grpc.CallOption) (*UnpauseDeploymentResp, error)
+	StopDeployment(ctx context.Context, in *StopDeploymentReq, opts ...grpc.CallOption) (*StopDeploymentResp, error)
+	DeleteDeployment(ctx context.Context, in *DeleteDeploymentReq, opts ...grpc.CallOption) (*DeleteDeploymentResp, error)
 }
 
 type updateServiceClient struct {
@@ -83,6 +91,46 @@ func (c *updateServiceClient) RollbackRevision(ctx context.Context, in *Rollback
 	return out, nil
 }
 
+func (c *updateServiceClient) PauseDeployment(ctx context.Context, in *PauseDeploymentReq, opts ...grpc.CallOption) (*PauseDeploymentResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PauseDeploymentResp)
+	err := c.cc.Invoke(ctx, UpdateService_PauseDeployment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *updateServiceClient) UnpauseDeployment(ctx context.Context, in *UnpauseDeploymentReq, opts ...grpc.CallOption) (*UnpauseDeploymentResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnpauseDeploymentResp)
+	err := c.cc.Invoke(ctx, UpdateService_UnpauseDeployment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *updateServiceClient) StopDeployment(ctx context.Context, in *StopDeploymentReq, opts ...grpc.CallOption) (*StopDeploymentResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StopDeploymentResp)
+	err := c.cc.Invoke(ctx, UpdateService_StopDeployment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *updateServiceClient) DeleteDeployment(ctx context.Context, in *DeleteDeploymentReq, opts ...grpc.CallOption) (*DeleteDeploymentResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteDeploymentResp)
+	err := c.cc.Invoke(ctx, UpdateService_DeleteDeployment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UpdateServiceServer is the server API for UpdateService service.
 // All implementations must embed UnimplementedUpdateServiceServer
 // for forward compatibility.
@@ -91,6 +139,10 @@ type UpdateServiceServer interface {
 	GetDeployment(context.Context, *GetDeploymentReq) (*GetDeploymentResp, error)
 	GetDeploymentOwnedRevisions(context.Context, *GetDeploymentOwnedRevisionsReq) (*GetDeploymentOwnedRevisionsResp, error)
 	RollbackRevision(context.Context, *RollbackRevisionReq) (*RollbackRevisionResp, error)
+	PauseDeployment(context.Context, *PauseDeploymentReq) (*PauseDeploymentResp, error)
+	UnpauseDeployment(context.Context, *UnpauseDeploymentReq) (*UnpauseDeploymentResp, error)
+	StopDeployment(context.Context, *StopDeploymentReq) (*StopDeploymentResp, error)
+	DeleteDeployment(context.Context, *DeleteDeploymentReq) (*DeleteDeploymentResp, error)
 	mustEmbedUnimplementedUpdateServiceServer()
 }
 
@@ -112,6 +164,18 @@ func (UnimplementedUpdateServiceServer) GetDeploymentOwnedRevisions(context.Cont
 }
 func (UnimplementedUpdateServiceServer) RollbackRevision(context.Context, *RollbackRevisionReq) (*RollbackRevisionResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RollbackRevision not implemented")
+}
+func (UnimplementedUpdateServiceServer) PauseDeployment(context.Context, *PauseDeploymentReq) (*PauseDeploymentResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PauseDeployment not implemented")
+}
+func (UnimplementedUpdateServiceServer) UnpauseDeployment(context.Context, *UnpauseDeploymentReq) (*UnpauseDeploymentResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnpauseDeployment not implemented")
+}
+func (UnimplementedUpdateServiceServer) StopDeployment(context.Context, *StopDeploymentReq) (*StopDeploymentResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StopDeployment not implemented")
+}
+func (UnimplementedUpdateServiceServer) DeleteDeployment(context.Context, *DeleteDeploymentReq) (*DeleteDeploymentResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteDeployment not implemented")
 }
 func (UnimplementedUpdateServiceServer) mustEmbedUnimplementedUpdateServiceServer() {}
 func (UnimplementedUpdateServiceServer) testEmbeddedByValue()                       {}
@@ -206,6 +270,78 @@ func _UpdateService_RollbackRevision_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UpdateService_PauseDeployment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseDeploymentReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateServiceServer).PauseDeployment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UpdateService_PauseDeployment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateServiceServer).PauseDeployment(ctx, req.(*PauseDeploymentReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UpdateService_UnpauseDeployment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnpauseDeploymentReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateServiceServer).UnpauseDeployment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UpdateService_UnpauseDeployment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateServiceServer).UnpauseDeployment(ctx, req.(*UnpauseDeploymentReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UpdateService_StopDeployment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StopDeploymentReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateServiceServer).StopDeployment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UpdateService_StopDeployment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateServiceServer).StopDeployment(ctx, req.(*StopDeploymentReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UpdateService_DeleteDeployment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteDeploymentReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateServiceServer).DeleteDeployment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UpdateService_DeleteDeployment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateServiceServer).DeleteDeployment(ctx, req.(*DeleteDeploymentReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UpdateService_ServiceDesc is the grpc.ServiceDesc for UpdateService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +364,22 @@ var UpdateService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RollbackRevision",
 			Handler:    _UpdateService_RollbackRevision_Handler,
+		},
+		{
+			MethodName: "PauseDeployment",
+			Handler:    _UpdateService_PauseDeployment_Handler,
+		},
+		{
+			MethodName: "UnpauseDeployment",
+			Handler:    _UpdateService_UnpauseDeployment_Handler,
+		},
+		{
+			MethodName: "StopDeployment",
+			Handler:    _UpdateService_StopDeployment_Handler,
+		},
+		{
+			MethodName: "DeleteDeployment",
+			Handler:    _UpdateService_DeleteDeployment_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -22,21 +22,22 @@ func (u UpdateServiceGrpcHandler) StartWorker(d *domain.Deployment) {
 	err := u.workerMap.Add(topic)
 	if err != nil {
 		log.Printf("Worker already exists for topic: %s", topic)
-		//Send a message via NATS to trigger immidieate reconcile
+		// send a message via NATS to trigger reconcile
 		publisher, err := nats.NewPublisher(u.natsConn)
 		if err != nil {
 			log.Printf("Error with publisher for running worker on topic: %s", topic)
 		}
-		publisher.Publish([]byte("reconcile"), topic)
+		publisher.Publish([]byte(`{"msg": "reconcile"}`), topic)
 		return
 	}
-	defer u.workerMap.Remove(topic)
+	// defer u.workerMap.Remove(topic)
 
 	log.Printf("Creating NATS topic: %s", topic)
 	log.Printf("Starting worker for topic: %s", topic)
 
 	msgChan := make(chan *natsgo.Msg, 100)
 	interruptChan := make(chan struct{})
+	stopChan := make(chan struct{}, 10)
 
 	sub, err := nats.NewSubscriber(u.natsConn, topic, "")
 	if err != nil {
@@ -51,13 +52,13 @@ func (u UpdateServiceGrpcHandler) StartWorker(d *domain.Deployment) {
 	}
 	defer sub.Unsubscribe()
 
-	cooldown := time.NewTicker(3 * time.Second)
+	cooldown := time.NewTicker(1 * time.Second)
 	defer cooldown.Stop()
 
 	for {
 		select {
 		case msg := <-msgChan:
-			log.Println("Worker handling message: ", msg)
+			log.Println("Worker!!! handling message: ", msg)
 			close(interruptChan)
 			interruptChan = make(chan struct{})
 			d, err := u.deploymentRepo.Get(d.Name, d.Namespace, d.OrgId)
@@ -66,23 +67,28 @@ func (u UpdateServiceGrpcHandler) StartWorker(d *domain.Deployment) {
 			} else {
 				u.HandleMessage(d, msg)
 				// reset cooldown
-				cooldown = time.NewTicker(1 * time.Second)
+				cooldown = time.NewTicker(500 * time.Millisecond)
 			}
 		case <-cooldown.C:
 			cooldown = time.NewTicker(10 * time.Second)
 			ctx, cancel := context.WithCancel(context.Background())
 			go func() {
 				<-interruptChan
+				log.Println("Worker!!! interrupting reconcile")
 				cancel()
 			}()
-			//Get version from repo
+			// get version from repo
 			d, err := u.deploymentRepo.Get(d.Name, d.Namespace, d.OrgId)
 			if err != nil {
 				log.Printf("Failed to get deployment: %v", err)
 			} else {
-				u.Reconcile(ctx, d)
+				u.Reconcile(ctx, d, stopChan)
 			}
 			log.Printf("Worker reconcile cooldown for 10 seconds")
+		case <-stopChan:
+			log.Printf("Stopping worker for topic: %s", topic)
+			u.workerMap.Remove(topic)
+			return
 		}
 	}
 }
@@ -104,6 +110,10 @@ func (u *UpdateServiceGrpcHandler) HandleMessage(d *domain.Deployment, msg *nats
 			u.HandleUnpauseDeploymentTask(d, task, replySubject)
 		case worker.TaskTypeRollback:
 			u.HandleRollbackTask(d, task, replySubject)
+		case worker.TaskTypeStop:
+			u.HandleStopTask(d, task, replySubject)
+		case worker.TaskTypeDelete:
+			u.HandleDeleteTask(d, task, replySubject)
 		default:
 			log.Printf("Unknown task type: %s", task.TaskType)
 			return
@@ -235,11 +245,40 @@ func (u *UpdateServiceGrpcHandler) HandleRollbackTask(d *domain.Deployment, task
 		return
 	}
 	// save deployment in case appSpec has been changed in rollback revision
+	log.Println("ROLLBACK SAVE MOMENT")
 	err = u.SaveDeployment(d)
 	if err != nil {
 		resp.ErrorType = worker.ErrorTypeInternal
 		resp.ErrorMsg = "Failed to save deployment"
 	}
 	// return response to publisher via NATS
+	u.SendTaskResponse(replySubject, resp)
+}
+
+func (u *UpdateServiceGrpcHandler) HandleStopTask(d *domain.Deployment, task worker.WorkerTask, replySubject string) {
+
+	var resp worker.TaskResponse
+
+	d.Status.Stopped = true
+	err := u.SaveDeployment(d)
+	if err != nil {
+		resp.ErrorType = worker.ErrorTypeInternal
+		resp.ErrorMsg = "Failed to mark stop deployment"
+	}
+	u.SendTaskResponse(replySubject, resp)
+}
+
+func (u *UpdateServiceGrpcHandler) HandleDeleteTask(d *domain.Deployment, task worker.WorkerTask, replySubject string) {
+
+	var resp worker.TaskResponse
+
+	d.Status.Stopped = true
+	d.Status.Deleted = true
+	err := u.SaveDeployment(d)
+	if err != nil {
+		resp.ErrorType = worker.ErrorTypeInternal
+		resp.ErrorMsg = "Failed to mark delete deployment"
+	}
+
 	u.SendTaskResponse(replySubject, resp)
 }

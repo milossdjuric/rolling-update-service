@@ -2,6 +2,7 @@ package nats
 
 import (
 	"errors"
+	"log"
 
 	"github.com/milossdjuric/rolling_update_service/pkg/messaging"
 	"github.com/nats-io/nats.go"
@@ -12,6 +13,7 @@ type subscriber struct {
 	subscription *nats.Subscription
 	subject      string
 	queue        string
+	js           nats.JetStreamContext
 }
 
 func NewSubscriber(conn *nats.Conn, subject, queue string) (messaging.Subsriber, error) {
@@ -19,10 +21,17 @@ func NewSubscriber(conn *nats.Conn, subject, queue string) (messaging.Subsriber,
 		return nil, errors.New("connection error")
 	}
 
+	js, err := conn.JetStream()
+	if err != nil {
+		log.Println("JetStream not available")
+		return nil, err
+	}
+
 	return &subscriber{
 		conn:    conn,
 		subject: subject,
 		queue:   queue,
+		js:      js,
 	}, nil
 }
 
@@ -55,6 +64,44 @@ func (s *subscriber) ChannelSubscribe(channel chan *nats.Msg) error {
 	}
 
 	subscription, err := s.conn.ChanSubscribe(s.subject, channel)
+	if err != nil {
+		return err
+	}
+
+	s.subscription = subscription
+	return nil
+}
+
+func (s *subscriber) SubscribeJetStream(handler func(msg []byte, replySubject string)) error {
+	if s.subscription != nil {
+		return errors.New("already subscribed")
+	}
+
+	// Subscribe to JetStream subject with a queue group
+	subscription, err := s.js.Subscribe(s.subject, func(msg *nats.Msg) {
+		handler(msg.Data, msg.Reply)
+	}, nats.Durable(s.queue), nats.AckNone()) // Using AckNone to explicitly control acknowledgments
+	if err != nil {
+		return err
+	}
+
+	s.subscription = subscription
+	return nil
+}
+
+func (s *subscriber) UnsubscribeJetStream() error {
+	if s.subscription != nil && s.subscription.IsValid() {
+		return s.subscription.Unsubscribe()
+	}
+	return nil
+}
+
+func (s *subscriber) ChannelSubscribeJetStream(channel chan *nats.Msg) error {
+	if s.subscription != nil {
+		return errors.New("already subscribed")
+	}
+
+	subscription, err := s.js.ChanSubscribe(s.subject, channel)
 	if err != nil {
 		return err
 	}

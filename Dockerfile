@@ -3,6 +3,9 @@ FROM golang:latest as builder
 WORKDIR /app
 
 COPY ./rolling_update_service/go.mod ./rolling_update_service/go.sum ./
+
+COPY ./magnetar ../magnetar
+
 RUN go mod download
 
 COPY ./rolling_update_service/ .

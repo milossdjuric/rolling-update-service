@@ -116,7 +116,11 @@ func (a *app) init() {
 	a.deploymentMarshaller = deploymentMarshaller
 	a.revisionMarshaller = revisionMarshaller
 
-	updateService := handlers.NewUpdateServiceGrpcHandler(a.deploymentRepo, a.revisionRepo, natsConn, a.dockerClient, a.magnetar)
+	rateLimiter := handlers.NewLeakyBucketRateLimiter(3, 10)
+	updateService := handlers.NewUpdateServiceGrpcHandler(a.deploymentRepo, a.revisionRepo, natsConn, a.dockerClient, a.magnetar, rateLimiter)
+	a.shutdownProcesses = append(a.shutdownProcesses, func() {
+		rateLimiter.Stop()
+	})
 
 	a.grpcServer = grpc.NewServer()
 	api.RegisterUpdateServiceServer(a.grpcServer, updateService)

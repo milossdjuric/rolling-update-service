@@ -25,6 +25,7 @@ message DeploymentSpec {
     int64 minReadySeconds = 7;
     int64 deadlineExceeded = 8;
     bool automaticRollback = 9;
+    string mode = 10;
 }
 
 message DeploymentStatus {
@@ -35,6 +36,8 @@ message DeploymentStatus {
     int64 unavailableAppCount = 5;
     map<string, DeploymentState> states = 6;
     bool paused = 7;
+    bool stopped = 8;
+    bool deleted = 9;
 }
 
 message DeploymentStrategy{

@@ -9,6 +9,8 @@ const (
 	TaskTypeRollback = "Rollback"
 	TaskTypePause    = "Pause"
 	TaskTypeUnpause  = "Unpause"
+	TaskTypeStop     = "Stop"
+	TaskTypeDelete   = "Delete"
 )
 
 type WorkerTask struct {

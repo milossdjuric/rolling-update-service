@@ -38,7 +38,7 @@ func (d deploymentEtcdRepo) Put(deployment domain.Deployment) error {
 		return err
 	}
 
-	log.Println("Passed etcd put")
+	log.Println("ETCD PUT HAPPENED, DEPLOYMENT: ", deployment)
 
 	return nil
 }
@@ -60,6 +60,15 @@ func (d deploymentEtcdRepo) Get(name, namespace, orgId string) (*domain.Deployme
 	}
 
 	return deploymentUnmarshalled, nil
+}
+
+func (d deploymentEtcdRepo) Delete(name, namespace, orgId string) error {
+	key := getDeploymentKey(domain.Deployment{Name: name, Namespace: namespace, OrgId: orgId})
+	_, err := d.etcd.Delete(context.Background(), key)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 const (

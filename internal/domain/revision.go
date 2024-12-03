@@ -72,6 +72,7 @@ type RevisionRepo interface {
 	Delete(name, namespace, orgId string) error
 	GetDeploymentOwnedRevisions(selectorLabels map[string]string, namespace, orgId string) ([]Revision, error)
 	SelectRevisions(selectorLabels map[string]string, keyPrefix string) ([]Revision, error)
+	DeleteDeploymentOwnedRevisions(selectorLabels map[string]string, namespace, orgId string) error
 }
 
 type RevisionMarshaller interface {

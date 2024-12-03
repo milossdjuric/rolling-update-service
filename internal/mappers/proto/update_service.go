@@ -66,6 +66,16 @@ func AddDeploymentReqToDomain(req *api.AddDeploymentReq) (domain.Deployment, err
 		automaticRollback = *req.Spec.AutomaticRollback
 	}
 
+	log.Printf("Req: %v", req)
+
+	log.Printf("Req Spec Mode: %s", req.Spec.Mode)
+
+	if req.Spec.Mode != string(domain.NodeAgentDirectDockerDaemon) &&
+		req.Spec.Mode != string(domain.NodeAgentIndirectDockerDaemon) &&
+		req.Spec.Mode != string(domain.DirectDockerDaemon) {
+		return domain.Deployment{}, status.Error(codes.InvalidArgument, "Invalid deployment mode")
+	}
+
 	deploymentSpec := domain.NewDeploymentSpec(
 		req.Spec.SelectorLabels,
 		req.Spec.AppCount,
@@ -81,6 +91,7 @@ func AddDeploymentReqToDomain(req *api.AddDeploymentReq) (domain.Deployment, err
 		req.Spec.MinReadySeconds,
 		req.Spec.DeadlineExceeded,
 		automaticRollback,
+		domain.DeploymentMode(req.Spec.Mode),
 	)
 
 	deploymentStatus := domain.NewDeploymentStatus()
