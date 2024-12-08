@@ -14,13 +14,11 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// count apps that match the revision via selector labels
 func CountMatchingAppsForRevisons(revision *domain.Revision, apps []*domain.App) int64 {
 	appCount := int64(0)
 	for _, app := range apps {
-		// log.Printf("Checking Count Matching Apps For Revisions, revision name: %s, app name: %s", revision.Name, app.Name)
-		// log.Printf("Revision Selector Labels: %v, App Selector Labels: %v", revision.Spec.SelectorLabels, app.SelectorLabels)
 		if utils.MatchLabels(revision.Spec.SelectorLabels, app.SelectorLabels) {
-			// log.Printf("INCREMENTED")
 			appCount++
 		}
 	}
@@ -28,11 +26,12 @@ func CountMatchingAppsForRevisons(revision *domain.Revision, apps []*domain.App)
 }
 
 func IsDeadlineExceeded(d *domain.Deployment, timestamp int64) bool {
-	log.Printf("Deadline of deployment %s exceeded: %v", d.Name, d.Spec.DeadlineExceeded)
+	log.Printf("DEPLOYMENT %s: Deadline for exceeding is: %v seconds", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), d.Spec.DeadlineExceeded)
 	deadline := d.Spec.DeadlineExceeded + timestamp
 	return time.Now().Unix() > deadline
 }
 
+// get apps that are not in available apps map and do not match new revision selector labels
 func GetOldUnavailableApps(totalApps, availableApps []domain.App, newRevision *domain.Revision) []domain.App {
 
 	availableAppsMap := make(map[string]domain.App)
@@ -55,17 +54,17 @@ func (u *UpdateServiceGrpcHandler) SaveDeployment(d *domain.Deployment) error {
 	return u.deploymentRepo.Put(*d)
 }
 
+// check if context is interrupted, if so returns bool on which it stops the Reconcile() method
 func IsContextInterrupted(ctx context.Context) bool {
 	select {
 	case <-ctx.Done():
-		log.Println("Reconcile interrupted before reconciling deployment")
 		return true
 	default:
-		log.Println("Reconcile not interrupted")
 		return false
 	}
 }
 
+// checks if we are using node agent for deployment
 func IsWithNodeAgent(d *domain.Deployment) bool {
 	if d.Spec.Mode == domain.NodeAgentDirectDockerDaemon || d.Spec.Mode == domain.NodeAgentIndirectDockerDaemon {
 		return true
@@ -73,6 +72,7 @@ func IsWithNodeAgent(d *domain.Deployment) bool {
 	return false
 }
 
+// calls magnetar service to get org owned nodes
 func (u *UpdateServiceGrpcHandler) QueryNodes(ctx context.Context, orgId string, percentage int32) ([]*magnetarapi.NodeStringified, error) {
 
 	queryReq := &magnetarapi.ListOrgOwnedNodesNoAuthReq{
@@ -81,7 +81,6 @@ func (u *UpdateServiceGrpcHandler) QueryNodes(ctx context.Context, orgId string,
 	ctx = setOutgoingContext(ctx)
 	queryResp, err := u.magnetar.ListOrgOwnedNodesNoAuth(ctx, queryReq)
 	if err != nil {
-		log.Printf("Failed to list nodes: %v", err)
 		return nil, err
 	}
 
@@ -91,6 +90,7 @@ func (u *UpdateServiceGrpcHandler) QueryNodes(ctx context.Context, orgId string,
 	return nodes, nil
 }
 
+// selects random nodes from the list of nodes
 func selectRandomNodes(nodes []*magnetarapi.NodeStringified, percentage int32) []*magnetarapi.NodeStringified {
 	totalNodes := len(nodes)
 	numberOfNodesToSelect := int(math.Ceil(float64(totalNodes) * float64(percentage) / 100))
@@ -117,25 +117,7 @@ func setOutgoingContext(ctx context.Context) context.Context {
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-func (u *UpdateServiceGrpcHandler) QueryNodesNoAuth(ctx context.Context, orgId string, percentage int32) ([]*magnetarapi.NodeStringified, error) {
-
-	queryReq := &magnetarapi.ListOrgOwnedNodesNoAuthReq{
-		Org: orgId,
-	}
-	// ctx = setOutgoingContext(ctx)
-	fmt.Println("QUERY NODES NO AUTH DEBUG")
-	queryResp, err := u.magnetar.ListOrgOwnedNodesNoAuth(ctx, queryReq)
-	if err != nil {
-		log.Printf("Failed to list nodes: %v", err)
-		return nil, err
-	}
-
-	log.Printf("query.Resp.Nodes: %v", queryResp.Nodes)
-
-	nodes := selectRandomNodes(queryResp.Nodes, percentage)
-	return nodes, nil
-}
-
+// get random node id from the list of node idss
 func GetRandomNodeId(nodeIds []string) (string, error) {
 	if len(nodeIds) == 0 {
 		return "", fmt.Errorf("no nodes available")
@@ -145,6 +127,7 @@ func GetRandomNodeId(nodeIds []string) (string, error) {
 	return nodeIds[r.Intn(len(nodeIds))], nil
 }
 
+// prepare arguments for app operation, important for node agent
 func PrepareAppOperationArgs(orgId string, namespace string, nodeIds ...string) []string {
 	args := make([]string, 0)
 	args = append(args, orgId)

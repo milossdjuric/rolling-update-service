@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -77,40 +78,25 @@ func (a *AppSpec) AddResourceQuota(resource string, quota float64) error {
 }
 
 func (a *AppSpec) CompareAppSpecs(other AppSpec) bool {
-
-	// log.Println("-----------------COMPARING APP SPECS-----------------")
-	// log.Println("a: ", a)
-	// log.Println("other: ", other)
-
 	if a.Name != other.Name ||
 		a.Namespace != other.Namespace ||
 		a.OrgId != other.OrgId ||
 		a.SeccompDefintionStrategy != other.SeccompDefintionStrategy ||
 		a.SeccompProfile.DefaultAction != other.SeccompProfile.DefaultAction {
-		// log.Println("App mismatch basic")
 		return false
 	}
 
 	if !utils.MatchLabels(other.SelectorLabels, a.SelectorLabels) {
-		// log.Println("App mismatch selector labels")
 		return false
 	}
 
 	if !utils.CompareFloatMaps(a.Quotas, other.Quotas) {
-		// log.Println("App mismatch quotas")
 		return false
 	}
-
-	// if !utils.CompareStringMaps(a.SelectorLabels, other.SelectorLabels) ||
-	// 	!utils.CompareFloatMaps(a.Quotas, other.Quotas) {
-	// 	return false
-	// }
 
 	if !a.CompareSyscalls(other.SeccompProfile.Syscalls) {
-		// log.Println("App mismatch syscalls")
 		return false
 	}
-	// log.Println("App match")
 	return true
 }
 
@@ -126,4 +112,21 @@ func (a *AppSpec) CompareSyscalls(otherSyscalls []SyscallRule) bool {
 		}
 	}
 	return true
+}
+
+func (as AppSpec) Validate() error {
+	if as.Name == "" {
+		return errors.New("app name is empty")
+	}
+	if as.Namespace == "" {
+		return errors.New("app namespace is empty")
+	}
+	if as.OrgId == "" {
+		return errors.New("app orgId is empty")
+	}
+	if len(as.SelectorLabels) == 0 {
+		return errors.New("app selector labels are missing")
+	}
+
+	return nil
 }

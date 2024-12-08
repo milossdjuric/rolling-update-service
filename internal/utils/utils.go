@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -10,8 +11,10 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
+// calculates the total resource quotas for all apps for a deployment
 func CalculateResourceQuotas(appCount int64, appQuotas map[string]float64) map[string]float64 {
 	calculatedQuotas := make(map[string]float64)
 	for resource, quota := range appQuotas {
@@ -20,6 +23,7 @@ func CalculateResourceQuotas(appCount int64, appQuotas map[string]float64) map[s
 	return calculatedQuotas
 }
 
+// generates a unique name by appending a short hash to the input name
 func GenerateUniqueName(name string) string {
 	uuidValue := uuid.New()
 	shortUUID := strings.ReplaceAll(uuidValue.String(), "-", "")
@@ -33,18 +37,11 @@ func GenerateUniqueName(name string) string {
 }
 
 func MatchLabels(childLabels, parentLables map[string]string) bool {
-
-	// log.Println("-----------------MATCH LABELS-----------------")
-
 	for key, value := range parentLables {
 		if childValue, exists := childLabels[key]; !exists || childValue != value {
-			// log.Printf("Mismatched Labels Parent: %v", parentLables)
-			// log.Printf("Mismatched Labels Child: %v", childLabels)
 			return false
 		}
 	}
-	// log.Printf("Matched Labels Parent: %v", parentLables)
-	// log.Printf("Matched Labels Child: %v", childLabels)
 	return true
 }
 
@@ -84,8 +81,8 @@ func CompareStringMaps(map1, map2 map[string]string) bool {
 	return true
 }
 
+// converts a worker task response to a gRPC error
 func TaskResponseToGrpcError(resp *worker.TaskResponse) error {
-
 	switch resp.ErrorType {
 	case "NotFound":
 		return status.Error(codes.NotFound, resp.ErrorMsg)
@@ -94,10 +91,20 @@ func TaskResponseToGrpcError(resp *worker.TaskResponse) error {
 	}
 }
 
+// sets default value for rolling update, for max surge and max unavailable
 func CalculateDefaultRollingValue(value *int64, appCount int64) {
 	//Sets default of 1/4 of total app count, if app count < 0, return 1
 	*value = appCount / 4
 	if *value == 0 {
 		*value = 1
 	}
+}
+
+// retrieves a new instance of the registered type by its type URL, used for mapping for payload for worker tasks
+func GetRegisteredType(typeURL string) (proto.Message, error) {
+	constructor, ok := worker.TypeRegistry[typeURL]
+	if !ok {
+		return nil, fmt.Errorf("type URL %s not registered", typeURL)
+	}
+	return constructor(), nil
 }

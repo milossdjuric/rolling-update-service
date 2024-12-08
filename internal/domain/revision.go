@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -33,7 +35,8 @@ func NewRevisionFromDeployment(deployment Deployment) Revision {
 	for resource, quota := range deployment.Spec.AppSpec.Quotas {
 		err := appSpec.AddResourceQuota(resource, quota)
 		if err != nil {
-			//if error occurs return empty revision, on call of this method should check if there are any values in revision
+			//if error occurs return empty revision, on call of this method should check
+			//if there are any values in revision
 			log.Println(err)
 			return Revision{}
 		}
@@ -70,9 +73,9 @@ type RevisionRepo interface {
 	Put(revision Revision) error
 	Get(name, namespace, orgId string) (*Revision, error)
 	Delete(name, namespace, orgId string) error
-	GetDeploymentOwnedRevisions(selectorLabels map[string]string, namespace, orgId string) ([]Revision, error)
+	GetDeploymentOwned(selectorLabels map[string]string, namespace, orgId string) ([]Revision, error)
 	SelectRevisions(selectorLabels map[string]string, keyPrefix string) ([]Revision, error)
-	DeleteDeploymentOwnedRevisions(selectorLabels map[string]string, namespace, orgId string) error
+	DeleteDeploymentOwned(selectorLabels map[string]string, namespace, orgId string) error
 }
 
 type RevisionMarshaller interface {
@@ -81,18 +84,13 @@ type RevisionMarshaller interface {
 }
 
 func (r Revision) CompareRevisions(other Revision) bool {
-
-	// log.Println("-----------------COMPARING REVISIONS-----------------")
-
 	if r.Name != other.Name ||
 		r.Namespace != other.Namespace ||
 		r.OrgId != other.OrgId ||
 		!utils.MatchLabels(r.Spec.SelectorLabels, other.Spec.SelectorLabels) ||
 		!r.Spec.AppSpec.CompareAppSpecs(other.Spec.AppSpec) {
-		// log.Printf("Revision mismatch")
 		return false
 	}
-	// log.Printf("Revision match")
 	return true
 }
 
@@ -108,4 +106,34 @@ func (r ByCreationTimestamp) Less(i, j int) bool {
 
 func (r ByCreationTimestamp) Swap(i, j int) {
 	r[i], r[j] = r[j], r[i]
+}
+
+func (r Revision) Validate() error {
+	if r.Name == "" {
+		return errors.New("revision name is empty")
+	}
+	if r.Namespace == "" {
+		return errors.New("revision namespace is empty")
+	}
+	if r.OrgId == "" {
+		return errors.New("revision orgId is empty")
+	}
+
+	if err := r.Spec.Validate(); err != nil {
+		return fmt.Errorf("revision spec validation failed: %w", err)
+	}
+
+	return nil
+}
+
+func (rs RevisionSpec) Validate() error {
+	if len(rs.SelectorLabels) == 0 {
+		return fmt.Errorf("revision selector labels are missing")
+	}
+
+	if err := rs.AppSpec.Validate(); err != nil {
+		return fmt.Errorf("app spec validation failed: %w", err)
+	}
+
+	return nil
 }

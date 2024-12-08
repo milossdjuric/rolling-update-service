@@ -8,7 +8,6 @@ type LeakyBucketRateLimiter struct {
 	quit   chan struct{}
 }
 
-// NewLeakyBucketRateLimiter creates a leaky bucket rate limiter.
 func NewLeakyBucketRateLimiter(rate int, capacity int) *LeakyBucketRateLimiter {
 	rateLimiter := &LeakyBucketRateLimiter{
 		tokens: make(chan struct{}, capacity),
@@ -16,16 +15,14 @@ func NewLeakyBucketRateLimiter(rate int, capacity int) *LeakyBucketRateLimiter {
 		quit:   make(chan struct{}),
 	}
 
-	// Goroutine to refill the bucket
 	go func() {
 		for {
 			select {
 			case <-rateLimiter.ticker.C:
 				select {
 				case rateLimiter.tokens <- struct{}{}:
-					// Token added successfully
 				default:
-					// Bucket full, skip adding
+					// if bucket full ignore
 				}
 			case <-rateLimiter.quit:
 				return
@@ -36,12 +33,12 @@ func NewLeakyBucketRateLimiter(rate int, capacity int) *LeakyBucketRateLimiter {
 	return rateLimiter
 }
 
-// Allow removes a token from the bucket if available, or returns false.
+// checks if bucket has any tokens available
 func (b *LeakyBucketRateLimiter) Allow() bool {
 	select {
-	case <-b.tokens: // Consume a token
+	case <-b.tokens:
 		return true
-	default: // No tokens available
+	default:
 		return false
 	}
 }

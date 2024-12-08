@@ -116,7 +116,8 @@ func (a *app) init() {
 	a.deploymentMarshaller = deploymentMarshaller
 	a.revisionMarshaller = revisionMarshaller
 
-	rateLimiter := handlers.NewLeakyBucketRateLimiter(3, 10)
+	// rate limiter for NATS messages to agent nodes, currently set to default values
+	rateLimiter := handlers.NewLeakyBucketRateLimiter(20, 10)
 	updateService := handlers.NewUpdateServiceGrpcHandler(a.deploymentRepo, a.revisionRepo, natsConn, a.dockerClient, a.magnetar, rateLimiter)
 	a.shutdownProcesses = append(a.shutdownProcesses, func() {
 		rateLimiter.Stop()

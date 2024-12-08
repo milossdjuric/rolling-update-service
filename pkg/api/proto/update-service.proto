@@ -8,9 +8,10 @@ import "update-service-model.proto";
 import "google/protobuf/any.proto";
 
 service UpdateService {
-    rpc AddDeployment(AddDeploymentReq) returns (AddDeploymentResp) {}
+    rpc PutDeployment(PutDeploymentReq) returns (PutDeploymentResp) {}
     rpc GetDeployment(GetDeploymentReq) returns (GetDeploymentResp) {}
     rpc GetDeploymentOwnedRevisions(GetDeploymentOwnedRevisionsReq) returns (GetDeploymentOwnedRevisionsResp) {}
+    rpc GetNewRevision(GetNewRevisionReq) returns (GetNewRevisionResp) {}
     rpc RollbackRevision(RollbackRevisionReq) returns (RollbackRevisionResp) {}
     rpc PauseDeployment(PauseDeploymentReq) returns (PauseDeploymentResp) {}
     rpc UnpauseDeployment(UnpauseDeploymentReq) returns (UnpauseDeploymentResp) {}
@@ -18,7 +19,7 @@ service UpdateService {
     rpc DeleteDeployment(DeleteDeploymentReq) returns (DeleteDeploymentResp) {}
 }
 
-message AddDeploymentReq {
+message PutDeploymentReq {
     string name = 1;
     string namespace = 2;
     string orgId = 3;
@@ -43,7 +44,7 @@ message AddDeploymentReq {
     Spec spec = 5;
 }
 
-message AddDeploymentResp {}
+message PutDeploymentResp {}
 
 message RollbackRevisionReq {
     string name = 1;
@@ -88,6 +89,16 @@ message GetDeploymentOwnedRevisionsReq{
 
 message GetDeploymentOwnedRevisionsResp{
     repeated Revision revisions = 1;
+}
+
+message GetNewRevisionReq {
+    string name = 1;
+    string namespace = 2;
+    string orgId = 3;
+}
+
+message GetNewRevisionResp {
+    Revision revision = 1;
 }
 
 message StopDeploymentReq {
@@ -148,27 +159,6 @@ message TaskResponse{
     string errorType = 3;
 }
 
-// request messages for agent node, not used
- 
-// message StartAppReq{
-//   string name = 1;
-//   map<string, string> selectorLabels = 2;
-// }
-
-// message StopAppReq{
-//   string name = 1;
-// }
-
-// message QueryAppReq{
-//   string prefix = 1;
-//   map<string, string> selectorLabels = 2;
-// }
-
-// message HealthCheckAppReq{
-//   string name = 1;
-// }
-
-// message AvailabilityCheckAppReq{
-//   string name = 1;
-//   int64 minReadySeconds = 2;
-// }
+message RevisionInfo{
+    string name = 1;
+}

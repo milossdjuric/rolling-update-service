@@ -2,118 +2,150 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/milossdjuric/rolling_update_service/internal/domain"
+	mapper "github.com/milossdjuric/rolling_update_service/internal/mappers/proto"
 	"github.com/milossdjuric/rolling_update_service/internal/worker"
+	"github.com/milossdjuric/rolling_update_service/pkg/api"
 	"github.com/milossdjuric/rolling_update_service/pkg/messaging/nats"
 	natsgo "github.com/nats-io/nats.go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func (u UpdateServiceGrpcHandler) StartWorker(d *domain.Deployment) {
 
 	topic := fmt.Sprintf("deployments/%s/%s/%s", d.OrgId, d.Namespace, d.Name)
 
-	err := u.workerMap.Add(topic)
-	if err != nil {
+	// if worker already exists for topic, return
+	if err := u.workerMap.Add(topic); err != nil {
 		log.Printf("Worker already exists for topic: %s", topic)
-		// send a message via NATS to trigger reconcile
-		publisher, err := nats.NewPublisher(u.natsConn)
-		if err != nil {
-			log.Printf("Error with publisher for running worker on topic: %s", topic)
-		}
-		publisher.Publish([]byte(`{"msg": "reconcile"}`), topic)
 		return
 	}
-	// defer u.workerMap.Remove(topic)
 
-	log.Printf("Creating NATS topic: %s", topic)
+	// save deployment, if worker is started for the first time
+	u.SaveDeployment(d)
+
 	log.Printf("Starting worker for topic: %s", topic)
+	defer u.workerMap.Remove(topic)
 
+	// create message channel, interrupt channel and stop channel, on messsage channel we send tasks,
+	// on reconcile channel we send signal for reconcile, if there is ongoing reconcile, it is interrupted and
+	// new one is started, stop channel is used to stop worker, stop apps, clean up resources
 	msgChan := make(chan *natsgo.Msg, 100)
-	interruptChan := make(chan struct{})
-	stopChan := make(chan struct{}, 10)
+	reconcileChan := make(chan struct{})
+	stopChan := make(chan struct{})
 
 	sub, err := nats.NewSubscriber(u.natsConn, topic, "")
 	if err != nil {
-		log.Printf("Failed to create subscriber: %v", err)
-		return
-	}
-
-	err = sub.ChannelSubscribe(msgChan)
-	if err != nil {
-		log.Printf("Failed to subscribe to topic %s: %v", topic, err)
+		log.Printf("Failed to create subscriber for topic %s: %v", topic, err)
 		return
 	}
 	defer sub.Unsubscribe()
 
-	cooldown := time.NewTicker(1 * time.Second)
-	defer cooldown.Stop()
+	if err := sub.ChannelSubscribe(msgChan); err != nil {
+		log.Printf("Failed to subscribe to topic %s: %v", topic, err)
+		return
+	}
+
+	// parent context is used for worker, when we stop worker it cancels helper goroutine
+	parentCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cooldownTimer := time.NewTimer(100 * time.Millisecond)
+
+	// helper goroutine, listens for messages, interrupts and cooldowns
+	go func() {
+		for {
+			select {
+			// if parent context is cancelled, stop helper goroutine
+			case <-parentCtx.Done():
+				log.Println("Parent context cancelled, stopping worker handler goroutine")
+				return
+			// new task received, interrupt ongoing reconcile, start new one, use deployment from repo
+			case msg := <-msgChan:
+				log.Println("Received message, triggering reconcile")
+				close(reconcileChan)
+				reconcileChan = make(chan struct{})
+				// reset cooldown timer
+				cooldownTimer.Reset(100 * time.Millisecond)
+
+				updatedDeployment, err := u.deploymentRepo.Get(d.Name, d.Namespace, d.OrgId)
+				if err != nil {
+					log.Printf("Failed to fetch deployment: %v", err)
+					continue
+				}
+				u.HandleMessage(updatedDeployment, msg)
+			// cooldown time passed, trigger periodic reconcile
+			case <-cooldownTimer.C:
+				log.Println("Cooldown elapsed, triggering periodic reconcile")
+				cooldownTimer.Reset(15 * time.Second)
+				close(reconcileChan)
+				reconcileChan = make(chan struct{})
+			}
+		}
+	}()
 
 	for {
 		select {
-		case msg := <-msgChan:
-			log.Println("Worker!!! handling message: ", msg)
-			close(interruptChan)
-			interruptChan = make(chan struct{})
-			d, err := u.deploymentRepo.Get(d.Name, d.Namespace, d.OrgId)
-			if err != nil {
-				log.Printf("Failed to get deployment: %v", err)
-			} else {
-				u.HandleMessage(d, msg)
-				// reset cooldown
-				cooldown = time.NewTicker(500 * time.Millisecond)
-			}
-		case <-cooldown.C:
-			cooldown = time.NewTicker(10 * time.Second)
-			ctx, cancel := context.WithCancel(context.Background())
-			go func() {
-				<-interruptChan
-				log.Println("Worker!!! interrupting reconcile")
-				cancel()
-			}()
-			// get version from repo
-			d, err := u.deploymentRepo.Get(d.Name, d.Namespace, d.OrgId)
-			if err != nil {
-				log.Printf("Failed to get deployment: %v", err)
-			} else {
-				u.Reconcile(ctx, d, stopChan)
-			}
-			log.Printf("Worker reconcile cooldown for 10 seconds")
 		case <-stopChan:
 			log.Printf("Stopping worker for topic: %s", topic)
-			u.workerMap.Remove(topic)
 			return
+		case <-parentCtx.Done():
+			log.Println("Parent context cancelled, stopping worker")
+			return
+		// receive reconcile signal, start new reconcile, also listen for new reconcile signal, if it arrives,
+		// cancel current context to stop Reconcile()
+		case <-reconcileChan:
+			log.Printf("Reconcile received, starting reconciliation for topic: %s", topic)
+			currentCtx, currentCancel := context.WithCancel(parentCtx)
+			go func() {
+				<-reconcileChan
+				currentCancel()
+			}()
+
+			updatedDeployment, err := u.deploymentRepo.Get(d.Name, d.Namespace, d.OrgId)
+			if err != nil {
+				log.Printf("Failed to fetch deployment for reconcile: %v", err)
+				continue
+			}
+			u.Reconcile(currentCtx, updatedDeployment, stopChan)
 		}
 	}
 }
 
 func (u *UpdateServiceGrpcHandler) HandleMessage(d *domain.Deployment, msg *natsgo.Msg) {
-	log.Printf("Received message on topic %s: %s", msg.Subject, string(msg.Data))
+	log.Printf("Received message on topic %s", msg.Subject)
 
-	var task worker.WorkerTask
-	err := json.Unmarshal(msg.Data, &task)
+	var protoTask api.WorkerTask
+
+	err := proto.Unmarshal(msg.Data, &protoTask)
 	if err != nil {
 		log.Printf("Failed to unmarshal message: %v", err)
+	}
+	task, err := mapper.WorkerTaskToDomain(&protoTask)
+	if err != nil {
+		log.Printf("Failed to map task from proto to domain: %v", err)
 	} else {
 		replySubject := msg.Reply
 
 		switch task.TaskType {
 		case worker.TaskTypePause:
-			u.HandlePauseDeploymentTask(d, task, replySubject)
+			u.HandlePauseDeploymentTask(d, *task, replySubject)
 		case worker.TaskTypeUnpause:
-			u.HandleUnpauseDeploymentTask(d, task, replySubject)
+			u.HandleUnpauseDeploymentTask(d, *task, replySubject)
 		case worker.TaskTypeRollback:
-			u.HandleRollbackTask(d, task, replySubject)
+			u.HandleRollbackTask(d, *task, replySubject)
 		case worker.TaskTypeStop:
-			u.HandleStopTask(d, task, replySubject)
+			u.HandleStopTask(d, *task, replySubject)
 		case worker.TaskTypeDelete:
-			u.HandleDeleteTask(d, task, replySubject)
+			u.HandleDeleteTask(d, *task, replySubject)
+		case worker.TaskTypeAdd:
+			u.HandleAddTask(*task, replySubject)
 		default:
 			log.Printf("Unknown task type: %s", task.TaskType)
 			return
@@ -121,11 +153,16 @@ func (u *UpdateServiceGrpcHandler) HandleMessage(d *domain.Deployment, msg *nats
 	}
 }
 
-func (u *UpdateServiceGrpcHandler) sendTaskAndSubscribe(ctx context.Context, task worker.WorkerTask) (*worker.TaskResponse, error) {
+func (u *UpdateServiceGrpcHandler) SendTaskAndSubscribe(ctx context.Context, task worker.WorkerTask) (*worker.TaskResponse, error) {
 
 	log.Printf("Sending task: %v", task)
 
-	taskMarshalled, err := json.Marshal(task)
+	protoTask, err := mapper.WorkerTaskFromDomain(task)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Failed to map task domain to proto")
+	}
+
+	taskMarshalled, err := proto.Marshal(protoTask)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "Failed to marshal task")
 	}
@@ -136,6 +173,8 @@ func (u *UpdateServiceGrpcHandler) sendTaskAndSubscribe(ctx context.Context, tas
 	}
 
 	replySubject := publisher.GenerateReplySubject()
+
+	log.Printf("SEND TASK AND SUBSCRIBE: replySubject: %s", replySubject)
 
 	replySubscriber, err := nats.NewSubscriber(u.natsConn, replySubject, "")
 	if err != nil {
@@ -158,22 +197,33 @@ func (u *UpdateServiceGrpcHandler) sendTaskAndSubscribe(ctx context.Context, tas
 
 	select {
 	case msg := <-replyChan:
-		var resp worker.TaskResponse
-		err := json.Unmarshal(msg.Data, &resp)
+
+		protoResp := &api.TaskResponse{}
+		err := proto.Unmarshal(msg.Data, protoResp)
 		if err != nil {
 			return nil, status.Error(codes.Internal, "Failed to unmarshal data")
+		}
+
+		resp, err := mapper.TaskResponseToDomain(protoResp)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "Failed to map resp from proto to domain")
 		}
 		if resp.ErrorMsg != "" {
 			return nil, status.Error(codes.Internal, resp.ErrorMsg)
 		}
-		return &resp, nil
+		return resp, nil
 	case <-ctx.Done():
 		return nil, status.Error(codes.DeadlineExceeded, "Request timed out")
 	}
 }
 
 func (u *UpdateServiceGrpcHandler) SendTaskResponse(replySubject string, resp worker.TaskResponse) error {
-	respData, err := json.Marshal(resp)
+	protoResp, err := mapper.TaskResponseFromDomain(resp)
+	if err != nil {
+		return err
+	}
+
+	respData, err := proto.Marshal(protoResp)
 	if err != nil {
 		return err
 	}
@@ -186,6 +236,8 @@ func (u *UpdateServiceGrpcHandler) SendTaskResponse(replySubject string, resp wo
 	if err != nil {
 		return err
 	}
+
+	log.Printf("SEND TASK RESPONSE: replySubject: %s", replySubject)
 
 	log.Printf("Response sent on topic: %s", replySubject)
 
@@ -202,7 +254,10 @@ func (u *UpdateServiceGrpcHandler) HandlePauseDeploymentTask(d *domain.Deploymen
 		resp.ErrorType = worker.ErrorTypeInternal
 		resp.ErrorMsg = "Failed to save deployment"
 	}
-	u.SendTaskResponse(replySubject, resp)
+	err = u.SendTaskResponse(replySubject, resp)
+	if err != nil {
+		log.Printf("Failed to send task response: %v", err)
+	}
 }
 
 func (u *UpdateServiceGrpcHandler) HandleUnpauseDeploymentTask(d *domain.Deployment, task worker.WorkerTask, replySubject string) {
@@ -215,7 +270,10 @@ func (u *UpdateServiceGrpcHandler) HandleUnpauseDeploymentTask(d *domain.Deploym
 		resp.ErrorType = worker.ErrorTypeInternal
 		resp.ErrorMsg = "Failed to save deployment"
 	}
-	u.SendTaskResponse(replySubject, resp)
+	err = u.SendTaskResponse(replySubject, resp)
+	if err != nil {
+		log.Printf("Failed to send task response: %v", err)
+	}
 }
 
 func (u *UpdateServiceGrpcHandler) HandleRollbackTask(d *domain.Deployment, task worker.WorkerTask, replySubject string) {
@@ -252,7 +310,10 @@ func (u *UpdateServiceGrpcHandler) HandleRollbackTask(d *domain.Deployment, task
 		resp.ErrorMsg = "Failed to save deployment"
 	}
 	// return response to publisher via NATS
-	u.SendTaskResponse(replySubject, resp)
+	err = u.SendTaskResponse(replySubject, resp)
+	if err != nil {
+		log.Printf("Failed to send task response: %v", err)
+	}
 }
 
 func (u *UpdateServiceGrpcHandler) HandleStopTask(d *domain.Deployment, task worker.WorkerTask, replySubject string) {
@@ -265,7 +326,11 @@ func (u *UpdateServiceGrpcHandler) HandleStopTask(d *domain.Deployment, task wor
 		resp.ErrorType = worker.ErrorTypeInternal
 		resp.ErrorMsg = "Failed to mark stop deployment"
 	}
-	u.SendTaskResponse(replySubject, resp)
+
+	err = u.SendTaskResponse(replySubject, resp)
+	if err != nil {
+		log.Printf("Failed to send task response: %v", err)
+	}
 }
 
 func (u *UpdateServiceGrpcHandler) HandleDeleteTask(d *domain.Deployment, task worker.WorkerTask, replySubject string) {
@@ -280,5 +345,35 @@ func (u *UpdateServiceGrpcHandler) HandleDeleteTask(d *domain.Deployment, task w
 		resp.ErrorMsg = "Failed to mark delete deployment"
 	}
 
-	u.SendTaskResponse(replySubject, resp)
+	err = u.SendTaskResponse(replySubject, resp)
+	if err != nil {
+		log.Printf("Failed to send task response: %v", err)
+	}
+}
+
+func (u *UpdateServiceGrpcHandler) HandleAddTask(task worker.WorkerTask, replySubject string) {
+
+	var resp worker.TaskResponse
+	var deployment *domain.Deployment
+
+	protoDeployment := task.Payload["Deployment"].(*api.Deployment)
+
+	deployment, err := mapper.DeploymentToDomain(protoDeployment)
+	if err != nil {
+		resp.ErrorType = worker.ErrorTypeInternal
+		resp.ErrorMsg = "Failed to map to domain deployment"
+		u.SendTaskResponse(replySubject, resp)
+		return
+	}
+
+	err = u.SaveDeployment(deployment)
+	if err != nil {
+		resp.ErrorType = worker.ErrorTypeInternal
+		resp.ErrorMsg = "Failed to save deployment"
+	}
+
+	err = u.SendTaskResponse(replySubject, resp)
+	if err != nil {
+		log.Printf("Failed to send task response: %v", err)
+	}
 }

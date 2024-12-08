@@ -1,17 +1,22 @@
 package proto
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/milossdjuric/rolling_update_service/internal/domain"
 	"github.com/milossdjuric/rolling_update_service/internal/utils"
+	"github.com/milossdjuric/rolling_update_service/internal/worker"
 	"github.com/milossdjuric/rolling_update_service/pkg/api"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func AddDeploymentReqToDomain(req *api.AddDeploymentReq) (domain.Deployment, error) {
+func PutDeploymentReqToDomain(req *api.PutDeploymentReq) (domain.Deployment, error) {
 
 	seccompProfile := domain.SeccompProfile{
 		Version:       req.Spec.App.Profile.Version,
@@ -66,10 +71,6 @@ func AddDeploymentReqToDomain(req *api.AddDeploymentReq) (domain.Deployment, err
 		automaticRollback = *req.Spec.AutomaticRollback
 	}
 
-	log.Printf("Req: %v", req)
-
-	log.Printf("Req Spec Mode: %s", req.Spec.Mode)
-
 	if req.Spec.Mode != string(domain.NodeAgentDirectDockerDaemon) &&
 		req.Spec.Mode != string(domain.NodeAgentIndirectDockerDaemon) &&
 		req.Spec.Mode != string(domain.DirectDockerDaemon) {
@@ -95,7 +96,6 @@ func AddDeploymentReqToDomain(req *api.AddDeploymentReq) (domain.Deployment, err
 	)
 
 	deploymentStatus := domain.NewDeploymentStatus()
-	log.Println("Add Deployment Request to Domain, Deployment status:", deploymentStatus)
 
 	deployment := domain.NewDeployment(req.Name, req.Namespace, req.OrgId, req.Labels, deploymentSpec, deploymentStatus)
 
@@ -147,42 +147,104 @@ func GetDeploymentOwnedRevisionsRespFromDomain(revisions []domain.Revision) (*ap
 	}, nil
 }
 
-// func WorkerTaskToDomain(task api.WorkerTask) (worker.WorkerTask, error) {
+func GetNewestRevisionRespFromDomain(revision domain.Revision) (*api.GetNewRevisionResp, error) {
 
-// 	// Initialize payload as an empty map
-// 	payload := make(map[string]interface{})
+	revisionProto, err := RevisionFromDomain(revision)
+	if err != nil {
+		return nil, err
+	}
 
-// 	// Switch on the task type and handle accordingly
-// 	switch task.TaskType {
-// 	case worker.TaskTypeRollback:
-// 		// Ensure the payload contains the correct field and type
-// 		if rollbackRevName, ok := task.Payload["RollbackRevisionName"]; ok {
-// 			// Unmarshal the "RollbackRevisionName" field into a string
-// 			rollbackRevisionName := ""
-// 			if err := ptypes.UnmarshalAny(rollbackRevName.(*any.Any), &rollbackRevisionName); err != nil {
-// 				return worker.WorkerTask{}, status.Error(codes.InvalidArgument, "Failed to unpack RollbackRevisionName")
-// 			}
-// 			// Add the unpacked value to the payload map
-// 			payload["RollbackRevisionName"] = rollbackRevisionName
-// 		} else {
-// 			return worker.WorkerTask{}, status.Error(codes.InvalidArgument, "Payload does not contain RollbackRevisionName")
-// 		}
+	return &api.GetNewRevisionResp{
+		Revision: revisionProto,
+	}, nil
+}
 
-// 	case worker.TaskTypePause, worker.TaskTypeUnpause:
-// 		// For Pause and Unpause, the payload is an empty map, so we don't need any additional data
-// 		// (we've already initialized payload as an empty map above)
+func WorkerTaskFromDomain(workerTask worker.WorkerTask) (*api.WorkerTask, error) {
 
-// 	default:
-// 		// Handle invalid task types
-// 		return worker.WorkerTask{}, status.Error(codes.InvalidArgument, "Invalid task type")
-// 	}
+	protoPayload := make(map[string]*anypb.Any)
 
-// 	// Return the WorkerTask with the populated payload
-// 	return worker.WorkerTask{
-// 		TaskType:            task.TaskType,
-// 		DeploymentName:      task.DeploymentName,
-// 		DeploymentNamespace: task.DeploymentNamespace,
-// 		DeploymentOrgId:     task.DeploymentOrgId,
-// 		Payload:             payload,
-// 	}, nil
-// }
+	// map payload key-values to proto.Message
+	for key, value := range workerTask.Payload {
+		switch v := value.(type) {
+		case string:
+			protoValue := wrapperspb.String(v)
+			anyValue, err := anypb.New(protoValue)
+			if err != nil {
+				return nil, fmt.Errorf("failed to pack payload value for key %s: %w", key, err)
+			}
+			protoPayload[key] = anyValue
+		case proto.Message:
+
+			protoValue, ok := value.(proto.Message)
+			if !ok {
+				return nil, fmt.Errorf("payload value for key %s is not a proto.Message", key)
+			}
+			anyValue, err := anypb.New(protoValue)
+			if err != nil {
+				return nil, fmt.Errorf("failed to pack payload value for key %s: %w", key, err)
+			}
+			protoPayload[key] = anyValue
+		default:
+			return nil, fmt.Errorf("payload value for key %s is not a proto.Message or string", key)
+		}
+	}
+
+	workerTaskProto := &api.WorkerTask{
+		TaskType:            workerTask.TaskType,
+		DeploymentName:      workerTask.DeploymentName,
+		DeploymentNamespace: workerTask.DeploymentNamespace,
+		DeploymentOrgId:     workerTask.DeploymentOrgId,
+		Payload:             protoPayload,
+	}
+
+	return workerTaskProto, nil
+}
+
+func WorkerTaskToDomain(workerTask *api.WorkerTask) (*worker.WorkerTask, error) {
+	domainPayload := make(map[string]interface{})
+
+	for key, value := range workerTask.Payload {
+
+		//string value used for "RevisionName" payload key-value
+		if value.TypeUrl == "type.googleapis.com/google.protobuf.StringValue" {
+			var strValue wrapperspb.StringValue
+			if err := value.UnmarshalTo(&strValue); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal string payload for key %s: %w", key, err)
+			}
+			domainPayload[key] = strValue.GetValue()
+		} else {
+			//other values are stored as proto.Message, use type URL to get registered type
+			messageType, err := utils.GetRegisteredType(value.GetTypeUrl())
+			if err != nil {
+				return nil, fmt.Errorf("failed to get registered type for key %s: %w", key, err)
+			}
+
+			if err := value.UnmarshalTo(messageType); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal payload for key %s: %w", key, err)
+			}
+			domainPayload[key] = messageType
+		}
+	}
+
+	return &worker.WorkerTask{
+		TaskType:            workerTask.TaskType,
+		DeploymentName:      workerTask.DeploymentName,
+		DeploymentNamespace: workerTask.DeploymentNamespace,
+		DeploymentOrgId:     workerTask.DeploymentOrgId,
+		Payload:             domainPayload,
+	}, nil
+}
+
+func TaskResponseFromDomain(taskResponse worker.TaskResponse) (*api.TaskResponse, error) {
+	return &api.TaskResponse{
+		ErrorMsg:  taskResponse.ErrorMsg,
+		ErrorType: taskResponse.ErrorType,
+	}, nil
+}
+
+func TaskResponseToDomain(taskResponse *api.TaskResponse) (*worker.TaskResponse, error) {
+	return &worker.TaskResponse{
+		ErrorMsg:  taskResponse.ErrorMsg,
+		ErrorType: taskResponse.ErrorType,
+	}, nil
+}

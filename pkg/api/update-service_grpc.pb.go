@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UpdateService_AddDeployment_FullMethodName               = "/proto.UpdateService/AddDeployment"
+	UpdateService_PutDeployment_FullMethodName               = "/proto.UpdateService/PutDeployment"
 	UpdateService_GetDeployment_FullMethodName               = "/proto.UpdateService/GetDeployment"
 	UpdateService_GetDeploymentOwnedRevisions_FullMethodName = "/proto.UpdateService/GetDeploymentOwnedRevisions"
+	UpdateService_GetNewRevision_FullMethodName              = "/proto.UpdateService/GetNewRevision"
 	UpdateService_RollbackRevision_FullMethodName            = "/proto.UpdateService/RollbackRevision"
 	UpdateService_PauseDeployment_FullMethodName             = "/proto.UpdateService/PauseDeployment"
 	UpdateService_UnpauseDeployment_FullMethodName           = "/proto.UpdateService/UnpauseDeployment"
@@ -33,9 +34,10 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UpdateServiceClient interface {
-	AddDeployment(ctx context.Context, in *AddDeploymentReq, opts ...grpc.CallOption) (*AddDeploymentResp, error)
+	PutDeployment(ctx context.Context, in *PutDeploymentReq, opts ...grpc.CallOption) (*PutDeploymentResp, error)
 	GetDeployment(ctx context.Context, in *GetDeploymentReq, opts ...grpc.CallOption) (*GetDeploymentResp, error)
 	GetDeploymentOwnedRevisions(ctx context.Context, in *GetDeploymentOwnedRevisionsReq, opts ...grpc.CallOption) (*GetDeploymentOwnedRevisionsResp, error)
+	GetNewRevision(ctx context.Context, in *GetNewRevisionReq, opts ...grpc.CallOption) (*GetNewRevisionResp, error)
 	RollbackRevision(ctx context.Context, in *RollbackRevisionReq, opts ...grpc.CallOption) (*RollbackRevisionResp, error)
 	PauseDeployment(ctx context.Context, in *PauseDeploymentReq, opts ...grpc.CallOption) (*PauseDeploymentResp, error)
 	UnpauseDeployment(ctx context.Context, in *UnpauseDeploymentReq, opts ...grpc.CallOption) (*UnpauseDeploymentResp, error)
@@ -51,10 +53,10 @@ func NewUpdateServiceClient(cc grpc.ClientConnInterface) UpdateServiceClient {
 	return &updateServiceClient{cc}
 }
 
-func (c *updateServiceClient) AddDeployment(ctx context.Context, in *AddDeploymentReq, opts ...grpc.CallOption) (*AddDeploymentResp, error) {
+func (c *updateServiceClient) PutDeployment(ctx context.Context, in *PutDeploymentReq, opts ...grpc.CallOption) (*PutDeploymentResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddDeploymentResp)
-	err := c.cc.Invoke(ctx, UpdateService_AddDeployment_FullMethodName, in, out, cOpts...)
+	out := new(PutDeploymentResp)
+	err := c.cc.Invoke(ctx, UpdateService_PutDeployment_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +77,16 @@ func (c *updateServiceClient) GetDeploymentOwnedRevisions(ctx context.Context, i
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetDeploymentOwnedRevisionsResp)
 	err := c.cc.Invoke(ctx, UpdateService_GetDeploymentOwnedRevisions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *updateServiceClient) GetNewRevision(ctx context.Context, in *GetNewRevisionReq, opts ...grpc.CallOption) (*GetNewRevisionResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetNewRevisionResp)
+	err := c.cc.Invoke(ctx, UpdateService_GetNewRevision_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +147,10 @@ func (c *updateServiceClient) DeleteDeployment(ctx context.Context, in *DeleteDe
 // All implementations must embed UnimplementedUpdateServiceServer
 // for forward compatibility.
 type UpdateServiceServer interface {
-	AddDeployment(context.Context, *AddDeploymentReq) (*AddDeploymentResp, error)
+	PutDeployment(context.Context, *PutDeploymentReq) (*PutDeploymentResp, error)
 	GetDeployment(context.Context, *GetDeploymentReq) (*GetDeploymentResp, error)
 	GetDeploymentOwnedRevisions(context.Context, *GetDeploymentOwnedRevisionsReq) (*GetDeploymentOwnedRevisionsResp, error)
+	GetNewRevision(context.Context, *GetNewRevisionReq) (*GetNewRevisionResp, error)
 	RollbackRevision(context.Context, *RollbackRevisionReq) (*RollbackRevisionResp, error)
 	PauseDeployment(context.Context, *PauseDeploymentReq) (*PauseDeploymentResp, error)
 	UnpauseDeployment(context.Context, *UnpauseDeploymentReq) (*UnpauseDeploymentResp, error)
@@ -153,14 +166,17 @@ type UpdateServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedUpdateServiceServer struct{}
 
-func (UnimplementedUpdateServiceServer) AddDeployment(context.Context, *AddDeploymentReq) (*AddDeploymentResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddDeployment not implemented")
+func (UnimplementedUpdateServiceServer) PutDeployment(context.Context, *PutDeploymentReq) (*PutDeploymentResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PutDeployment not implemented")
 }
 func (UnimplementedUpdateServiceServer) GetDeployment(context.Context, *GetDeploymentReq) (*GetDeploymentResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDeployment not implemented")
 }
 func (UnimplementedUpdateServiceServer) GetDeploymentOwnedRevisions(context.Context, *GetDeploymentOwnedRevisionsReq) (*GetDeploymentOwnedRevisionsResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDeploymentOwnedRevisions not implemented")
+}
+func (UnimplementedUpdateServiceServer) GetNewRevision(context.Context, *GetNewRevisionReq) (*GetNewRevisionResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNewRevision not implemented")
 }
 func (UnimplementedUpdateServiceServer) RollbackRevision(context.Context, *RollbackRevisionReq) (*RollbackRevisionResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RollbackRevision not implemented")
@@ -198,20 +214,20 @@ func RegisterUpdateServiceServer(s grpc.ServiceRegistrar, srv UpdateServiceServe
 	s.RegisterService(&UpdateService_ServiceDesc, srv)
 }
 
-func _UpdateService_AddDeployment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddDeploymentReq)
+func _UpdateService_PutDeployment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutDeploymentReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UpdateServiceServer).AddDeployment(ctx, in)
+		return srv.(UpdateServiceServer).PutDeployment(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UpdateService_AddDeployment_FullMethodName,
+		FullMethod: UpdateService_PutDeployment_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UpdateServiceServer).AddDeployment(ctx, req.(*AddDeploymentReq))
+		return srv.(UpdateServiceServer).PutDeployment(ctx, req.(*PutDeploymentReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -248,6 +264,24 @@ func _UpdateService_GetDeploymentOwnedRevisions_Handler(srv interface{}, ctx con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UpdateServiceServer).GetDeploymentOwnedRevisions(ctx, req.(*GetDeploymentOwnedRevisionsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UpdateService_GetNewRevision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNewRevisionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateServiceServer).GetNewRevision(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UpdateService_GetNewRevision_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateServiceServer).GetNewRevision(ctx, req.(*GetNewRevisionReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -350,8 +384,8 @@ var UpdateService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*UpdateServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AddDeployment",
-			Handler:    _UpdateService_AddDeployment_Handler,
+			MethodName: "PutDeployment",
+			Handler:    _UpdateService_PutDeployment_Handler,
 		},
 		{
 			MethodName: "GetDeployment",
@@ -360,6 +394,10 @@ var UpdateService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDeploymentOwnedRevisions",
 			Handler:    _UpdateService_GetDeploymentOwnedRevisions_Handler,
+		},
+		{
+			MethodName: "GetNewRevision",
+			Handler:    _UpdateService_GetNewRevision_Handler,
 		},
 		{
 			MethodName: "RollbackRevision",

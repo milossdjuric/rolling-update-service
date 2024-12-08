@@ -3,13 +3,11 @@ package configs
 import "os"
 
 type Config struct {
-	natsAddress           string
-	etcdAddress           string
-	serverAddress         string
-	magnetarAddress       string
-	dockerAddress         string
-	rateLimiterMaxTokens  int
-	rateLimiterRefillRate int
+	natsAddress     string
+	etcdAddress     string
+	serverAddress   string
+	magnetarAddress string
+	dockerAddress   string
 }
 
 func (c *Config) NatsAddress() string {
@@ -30,14 +28,6 @@ func (c *Config) MagnetarAddress() string {
 
 func (c *Config) DockerAddress() string {
 	return c.dockerAddress
-}
-
-func (c *Config) RateLimiterMaxTokens() int {
-	return c.rateLimiterMaxTokens
-}
-
-func (c *Config) RateLimiterRefillRate() int {
-	return c.rateLimiterRefillRate
 }
 
 func NewFromEnv() (*Config, error) {

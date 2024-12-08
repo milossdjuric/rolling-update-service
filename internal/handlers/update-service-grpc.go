@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	magnetarapi "github.com/c12s/magnetar/pkg/api"
 	"github.com/docker/docker/client"
 	"github.com/milossdjuric/rolling_update_service/internal/domain"
-	"github.com/milossdjuric/rolling_update_service/internal/mappers/proto"
+	mapper "github.com/milossdjuric/rolling_update_service/internal/mappers/proto"
 	"github.com/milossdjuric/rolling_update_service/internal/utils"
 	"github.com/milossdjuric/rolling_update_service/internal/worker"
 	"github.com/milossdjuric/rolling_update_service/pkg/api"
@@ -41,39 +42,35 @@ func NewUpdateServiceGrpcHandler(deploymentRepo domain.DeploymentRepo, revisionR
 	}
 }
 
-func (u UpdateServiceGrpcHandler) AddDeployment(ctx context.Context, req *api.AddDeploymentReq) (*api.AddDeploymentResp, error) {
+func (u UpdateServiceGrpcHandler) PutDeployment(ctx context.Context, req *api.PutDeploymentReq) (*api.PutDeploymentResp, error) {
 	// get the deployment from the request
-	deployment, err := proto.AddDeploymentReqToDomain(req)
+	deployment, err := mapper.PutDeploymentReqToDomain(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	// get the new revision, if it exists
-	newRevision, _, err := u.GetNewAndOldRevisions(&deployment)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+	// newRevision, _, err := u.GetNewAndOldRevisions(&deployment)
+	// if err != nil {
+	// 	return nil, status.Error(codes.Internal, err.Error())
+	// }
 
-	err = u.revisionRepo.Put(*newRevision)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+	// err = u.revisionRepo.Put(*newRevision)
+	// if err != nil {
+	// 	return nil, status.Error(codes.Internal, err.Error())
+	// }
 
 	// check if deployment already exists in etcd, if it does, assign existing status, still change spec and labels
 	existingDeployment, err := u.deploymentRepo.Get(deployment.Name, deployment.Namespace, deployment.OrgId)
 	if err == nil && existingDeployment != nil {
 		deployment.Status = domain.SetDeploymentStatus(existingDeployment.Status)
-		// update the existing deployment states update timestamp
-		// deployment.Status.States[domain.DeploymentAvailable] = domain.NewDeploymentState(domain.DeploymentAvailable, deployment.Status.States[domain.DeploymentAvailable].Active,
-		// 	deployment.Status.States[domain.DeploymentAvailable].Message, time.Now().Unix(), deployment.Status.States[domain.DeploymentAvailable].LastUpdateTimestamp)
+		// update the existing deployment status states, mostly update their timestamps
 		deployment.Status.States[domain.DeploymentAvailable] = domain.NewDeploymentState(domain.DeploymentAvailable, deployment.Status.States[domain.DeploymentAvailable].Active,
 			deployment.Status.States[domain.DeploymentAvailable].Message, time.Now().Unix(), time.Now().Unix())
 
 		deployment.Status.States[domain.DeploymentProgress] = domain.NewDeploymentState(domain.DeploymentProgress, deployment.Status.States[domain.DeploymentProgress].Active,
 			deployment.Status.States[domain.DeploymentProgress].Message, time.Now().Unix(), time.Now().Unix())
 
-		// deployment.Status.States[domain.DeploymentFailure] = domain.NewDeploymentState(domain.DeploymentFailure, deployment.Status.States[domain.DeploymentFailure].Active,
-		// 	deployment.Status.States[domain.DeploymentFailure].Message, time.Now().Unix(), deployment.Status.States[domain.DeploymentFailure].LastUpdateTimestamp)
 		deployment.Status.States[domain.DeploymentFailure] = domain.NewDeploymentState(domain.DeploymentFailure, deployment.Status.States[domain.DeploymentFailure].Active,
 			deployment.Status.States[domain.DeploymentFailure].Message, time.Now().Unix(), time.Now().Unix())
 
@@ -81,30 +78,39 @@ func (u UpdateServiceGrpcHandler) AddDeployment(ctx context.Context, req *api.Ad
 		deployment.Status.Deleted = false
 	}
 
-	log.Println("ADD DEPLOYMENT MOMENT")
-	err = u.SaveDeployment(&deployment)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	// if worker exists, send the task to the worker to put the deployment in repo
+	topic := fmt.Sprintf("deployments/%s/%s/%s", deployment.OrgId, deployment.Namespace, deployment.Name)
+	if u.workerMap.Exists(topic) {
+		protoDeployment, err := mapper.DeploymentFromDomain(deployment)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		payload := map[string]interface{}{
+			"Deployment": protoDeployment,
+		}
+		task := worker.NewWorkerTask(worker.TaskTypeAdd, deployment.Name, deployment.Namespace, deployment.OrgId, payload)
+		resp, err := u.SendTaskAndSubscribe(ctx, task)
+		if err != nil {
+			return nil, err
+		}
+		if resp.ErrorMsg != "" {
+			return nil, utils.TaskResponseToGrpcError(resp)
+		}
 	}
 
-	// start worker to loop the deployment
+	// start worker to loop the deployment, if worker already exists, it will be ignored and returned
 	go u.StartWorker(&deployment)
 
 	log.Printf("Deployment %s added successfully", deployment.Name)
 
-	return &api.AddDeploymentResp{}, nil
+	return &api.PutDeploymentResp{}, nil
 }
 
 func (u UpdateServiceGrpcHandler) PauseDeployment(ctx context.Context, req *api.PauseDeploymentReq) (*api.PauseDeploymentResp, error) {
 
-	task := worker.WorkerTask{
-		TaskType:            worker.TaskTypePause,
-		DeploymentName:      req.Name,
-		DeploymentNamespace: req.Namespace,
-		DeploymentOrgId:     req.OrgId,
-		Payload:             map[string]interface{}{}}
-
-	resp, err := u.sendTaskAndSubscribe(ctx, task)
+	task := worker.NewWorkerTask(worker.TaskTypePause, req.Name, req.Namespace, req.OrgId, map[string]interface{}{})
+	// send task to worker to pause the deployment
+	resp, err := u.SendTaskAndSubscribe(ctx, task)
 	if err != nil {
 		return nil, err
 	}
@@ -117,14 +123,9 @@ func (u UpdateServiceGrpcHandler) PauseDeployment(ctx context.Context, req *api.
 
 func (u UpdateServiceGrpcHandler) UnpauseDeployment(ctx context.Context, req *api.UnpauseDeploymentReq) (*api.UnpauseDeploymentResp, error) {
 
-	task := worker.WorkerTask{
-		TaskType:            worker.TaskTypeUnpause,
-		DeploymentName:      req.Name,
-		DeploymentNamespace: req.Namespace,
-		DeploymentOrgId:     req.OrgId,
-		Payload:             map[string]interface{}{}}
-
-	resp, err := u.sendTaskAndSubscribe(ctx, task)
+	task := worker.NewWorkerTask(worker.TaskTypeUnpause, req.Name, req.Namespace, req.OrgId, map[string]interface{}{})
+	// send task to worker to unpause the deployment
+	resp, err := u.SendTaskAndSubscribe(ctx, task)
 	if err != nil {
 		return nil, err
 	}
@@ -137,16 +138,9 @@ func (u UpdateServiceGrpcHandler) UnpauseDeployment(ctx context.Context, req *ap
 
 func (u UpdateServiceGrpcHandler) RollbackRevision(ctx context.Context, req *api.RollbackRevisionReq) (*api.RollbackRevisionResp, error) {
 
-	task := worker.WorkerTask{
-		TaskType:            worker.TaskTypeRollback,
-		DeploymentName:      req.Name,
-		DeploymentNamespace: req.Namespace,
-		DeploymentOrgId:     req.OrgId,
-		Payload: map[string]interface{}{
-			"RollbackRevisionName": req.RevisionName,
-		}}
-
-	resp, err := u.sendTaskAndSubscribe(ctx, task)
+	// send task to worker to rollback the deployment
+	task := worker.NewWorkerTask(worker.TaskTypeRollback, req.Name, req.Namespace, req.OrgId, map[string]interface{}{"RollbackRevisionName": req.RevisionName})
+	resp, err := u.SendTaskAndSubscribe(ctx, task)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +157,7 @@ func (u UpdateServiceGrpcHandler) GetDeployment(ctx context.Context, req *api.Ge
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	protoResp, err := proto.GetDeploymentRespFromDomain(*deployment)
+	protoResp, err := mapper.GetDeploymentRespFromDomain(*deployment)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -177,16 +171,38 @@ func (u UpdateServiceGrpcHandler) GetDeploymentOwnedRevisions(ctx context.Contex
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	revisions, err := u.revisionRepo.GetDeploymentOwnedRevisions(deployment.Spec.SelectorLabels, req.Namespace, req.OrgId)
+	revisions, err := u.revisionRepo.GetDeploymentOwned(deployment.Spec.SelectorLabels, req.Namespace, req.OrgId)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	protoResp, err := proto.GetDeploymentOwnedRevisionsRespFromDomain(revisions)
+	protoResp, err := mapper.GetDeploymentOwnedRevisionsRespFromDomain(revisions)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	return protoResp, nil
+}
+
+func (u UpdateServiceGrpcHandler) GetNewRevision(ctx context.Context, req *api.GetNewRevisionReq) (*api.GetNewRevisionResp, error) {
+	// method returns current newest revision by timestamp for deployment, if new revision is not adjusted
+	// to deployment spec yet, it will not return it, but only the latest in repo
+	deployment, err := u.deploymentRepo.Get(req.Name, req.Namespace, req.OrgId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	revisions, err := u.revisionRepo.GetDeploymentOwned(deployment.Spec.SelectorLabels, req.Namespace, req.OrgId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	sort.Sort(sort.Reverse(domain.ByCreationTimestamp(revisions)))
+	newRevision := revisions[0]
+	protoResp, err := mapper.GetNewestRevisionRespFromDomain(newRevision)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 	return protoResp, nil
 }
 
@@ -197,16 +213,11 @@ func (u UpdateServiceGrpcHandler) DeleteDeployment(ctx context.Context, req *api
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	// if worker exists, send the task to the worker to stop and delete the deployment
 	topic := fmt.Sprintf("deployments/%s/%s/%s", d.OrgId, d.Namespace, d.Name)
 	if u.workerMap.Exists(topic) {
-		task := worker.WorkerTask{
-			TaskType:            worker.TaskTypeDelete,
-			DeploymentName:      req.Name,
-			DeploymentNamespace: req.Namespace,
-			DeploymentOrgId:     req.OrgId,
-			Payload:             map[string]interface{}{}}
-
-		resp, err := u.sendTaskAndSubscribe(ctx, task)
+		task := worker.NewWorkerTask(worker.TaskTypeDelete, req.Name, req.Namespace, req.OrgId, map[string]interface{}{})
+		resp, err := u.SendTaskAndSubscribe(ctx, task)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +225,7 @@ func (u UpdateServiceGrpcHandler) DeleteDeployment(ctx context.Context, req *api
 			return nil, utils.TaskResponseToGrpcError(resp)
 		}
 	} else {
-		err := u.revisionRepo.DeleteDeploymentOwnedRevisions(map[string]string{}, req.Namespace, req.OrgId)
+		err := u.revisionRepo.DeleteDeploymentOwned(map[string]string{}, req.Namespace, req.OrgId)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
@@ -234,17 +245,11 @@ func (u UpdateServiceGrpcHandler) StopDeployment(ctx context.Context, req *api.S
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	// if worker exists, send the task to the worker to stop the deployment
 	topic := fmt.Sprintf("deployments/%s/%s/%s", d.OrgId, d.Namespace, d.Name)
 	if u.workerMap.Exists(topic) {
-
-		task := worker.WorkerTask{
-			TaskType:            worker.TaskTypeStop,
-			DeploymentName:      req.Name,
-			DeploymentNamespace: req.Namespace,
-			DeploymentOrgId:     req.OrgId,
-			Payload:             map[string]interface{}{}}
-
-		resp, err := u.sendTaskAndSubscribe(ctx, task)
+		task := worker.NewWorkerTask(worker.TaskTypeStop, req.Name, req.Namespace, req.OrgId, map[string]interface{}{})
+		resp, err := u.SendTaskAndSubscribe(ctx, task)
 		if err != nil {
 			return nil, err
 		}

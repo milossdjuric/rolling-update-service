@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type AddDeploymentReq struct {
+type PutDeploymentReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -30,23 +30,23 @@ type AddDeploymentReq struct {
 	Namespace string                 `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	OrgId     string                 `protobuf:"bytes,3,opt,name=orgId,proto3" json:"orgId,omitempty"`
 	Labels    map[string]string      `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	Spec      *AddDeploymentReq_Spec `protobuf:"bytes,5,opt,name=spec,proto3" json:"spec,omitempty"`
+	Spec      *PutDeploymentReq_Spec `protobuf:"bytes,5,opt,name=spec,proto3" json:"spec,omitempty"`
 }
 
-func (x *AddDeploymentReq) Reset() {
-	*x = AddDeploymentReq{}
+func (x *PutDeploymentReq) Reset() {
+	*x = PutDeploymentReq{}
 	mi := &file_update_service_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddDeploymentReq) String() string {
+func (x *PutDeploymentReq) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddDeploymentReq) ProtoMessage() {}
+func (*PutDeploymentReq) ProtoMessage() {}
 
-func (x *AddDeploymentReq) ProtoReflect() protoreflect.Message {
+func (x *PutDeploymentReq) ProtoReflect() protoreflect.Message {
 	mi := &file_update_service_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -58,66 +58,66 @@ func (x *AddDeploymentReq) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddDeploymentReq.ProtoReflect.Descriptor instead.
-func (*AddDeploymentReq) Descriptor() ([]byte, []int) {
+// Deprecated: Use PutDeploymentReq.ProtoReflect.Descriptor instead.
+func (*PutDeploymentReq) Descriptor() ([]byte, []int) {
 	return file_update_service_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *AddDeploymentReq) GetName() string {
+func (x *PutDeploymentReq) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *AddDeploymentReq) GetNamespace() string {
+func (x *PutDeploymentReq) GetNamespace() string {
 	if x != nil {
 		return x.Namespace
 	}
 	return ""
 }
 
-func (x *AddDeploymentReq) GetOrgId() string {
+func (x *PutDeploymentReq) GetOrgId() string {
 	if x != nil {
 		return x.OrgId
 	}
 	return ""
 }
 
-func (x *AddDeploymentReq) GetLabels() map[string]string {
+func (x *PutDeploymentReq) GetLabels() map[string]string {
 	if x != nil {
 		return x.Labels
 	}
 	return nil
 }
 
-func (x *AddDeploymentReq) GetSpec() *AddDeploymentReq_Spec {
+func (x *PutDeploymentReq) GetSpec() *PutDeploymentReq_Spec {
 	if x != nil {
 		return x.Spec
 	}
 	return nil
 }
 
-type AddDeploymentResp struct {
+type PutDeploymentResp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 }
 
-func (x *AddDeploymentResp) Reset() {
-	*x = AddDeploymentResp{}
+func (x *PutDeploymentResp) Reset() {
+	*x = PutDeploymentResp{}
 	mi := &file_update_service_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddDeploymentResp) String() string {
+func (x *PutDeploymentResp) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddDeploymentResp) ProtoMessage() {}
+func (*PutDeploymentResp) ProtoMessage() {}
 
-func (x *AddDeploymentResp) ProtoReflect() protoreflect.Message {
+func (x *PutDeploymentResp) ProtoReflect() protoreflect.Message {
 	mi := &file_update_service_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -129,8 +129,8 @@ func (x *AddDeploymentResp) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddDeploymentResp.ProtoReflect.Descriptor instead.
-func (*AddDeploymentResp) Descriptor() ([]byte, []int) {
+// Deprecated: Use PutDeploymentResp.ProtoReflect.Descriptor instead.
+func (*PutDeploymentResp) Descriptor() ([]byte, []int) {
 	return file_update_service_proto_rawDescGZIP(), []int{1}
 }
 
@@ -645,6 +645,112 @@ func (x *GetDeploymentOwnedRevisionsResp) GetRevisions() []*Revision {
 	return nil
 }
 
+type GetNewRevisionReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name      string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Namespace string `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	OrgId     string `protobuf:"bytes,3,opt,name=orgId,proto3" json:"orgId,omitempty"`
+}
+
+func (x *GetNewRevisionReq) Reset() {
+	*x = GetNewRevisionReq{}
+	mi := &file_update_service_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNewRevisionReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNewRevisionReq) ProtoMessage() {}
+
+func (x *GetNewRevisionReq) ProtoReflect() protoreflect.Message {
+	mi := &file_update_service_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNewRevisionReq.ProtoReflect.Descriptor instead.
+func (*GetNewRevisionReq) Descriptor() ([]byte, []int) {
+	return file_update_service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetNewRevisionReq) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetNewRevisionReq) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
+}
+
+func (x *GetNewRevisionReq) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+type GetNewRevisionResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Revision *Revision `protobuf:"bytes,1,opt,name=revision,proto3" json:"revision,omitempty"`
+}
+
+func (x *GetNewRevisionResp) Reset() {
+	*x = GetNewRevisionResp{}
+	mi := &file_update_service_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNewRevisionResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNewRevisionResp) ProtoMessage() {}
+
+func (x *GetNewRevisionResp) ProtoReflect() protoreflect.Message {
+	mi := &file_update_service_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNewRevisionResp.ProtoReflect.Descriptor instead.
+func (*GetNewRevisionResp) Descriptor() ([]byte, []int) {
+	return file_update_service_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetNewRevisionResp) GetRevision() *Revision {
+	if x != nil {
+		return x.Revision
+	}
+	return nil
+}
+
 type StopDeploymentReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -657,7 +763,7 @@ type StopDeploymentReq struct {
 
 func (x *StopDeploymentReq) Reset() {
 	*x = StopDeploymentReq{}
-	mi := &file_update_service_proto_msgTypes[12]
+	mi := &file_update_service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -669,7 +775,7 @@ func (x *StopDeploymentReq) String() string {
 func (*StopDeploymentReq) ProtoMessage() {}
 
 func (x *StopDeploymentReq) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[12]
+	mi := &file_update_service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -682,7 +788,7 @@ func (x *StopDeploymentReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopDeploymentReq.ProtoReflect.Descriptor instead.
 func (*StopDeploymentReq) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{12}
+	return file_update_service_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *StopDeploymentReq) GetName() string {
@@ -714,7 +820,7 @@ type StopDeploymentResp struct {
 
 func (x *StopDeploymentResp) Reset() {
 	*x = StopDeploymentResp{}
-	mi := &file_update_service_proto_msgTypes[13]
+	mi := &file_update_service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -726,7 +832,7 @@ func (x *StopDeploymentResp) String() string {
 func (*StopDeploymentResp) ProtoMessage() {}
 
 func (x *StopDeploymentResp) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[13]
+	mi := &file_update_service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -739,7 +845,7 @@ func (x *StopDeploymentResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopDeploymentResp.ProtoReflect.Descriptor instead.
 func (*StopDeploymentResp) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{13}
+	return file_update_service_proto_rawDescGZIP(), []int{15}
 }
 
 type DeleteDeploymentReq struct {
@@ -754,7 +860,7 @@ type DeleteDeploymentReq struct {
 
 func (x *DeleteDeploymentReq) Reset() {
 	*x = DeleteDeploymentReq{}
-	mi := &file_update_service_proto_msgTypes[14]
+	mi := &file_update_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -766,7 +872,7 @@ func (x *DeleteDeploymentReq) String() string {
 func (*DeleteDeploymentReq) ProtoMessage() {}
 
 func (x *DeleteDeploymentReq) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[14]
+	mi := &file_update_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -779,7 +885,7 @@ func (x *DeleteDeploymentReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDeploymentReq.ProtoReflect.Descriptor instead.
 func (*DeleteDeploymentReq) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{14}
+	return file_update_service_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DeleteDeploymentReq) GetName() string {
@@ -811,7 +917,7 @@ type DeleteDeploymentResp struct {
 
 func (x *DeleteDeploymentResp) Reset() {
 	*x = DeleteDeploymentResp{}
-	mi := &file_update_service_proto_msgTypes[15]
+	mi := &file_update_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -823,7 +929,7 @@ func (x *DeleteDeploymentResp) String() string {
 func (*DeleteDeploymentResp) ProtoMessage() {}
 
 func (x *DeleteDeploymentResp) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[15]
+	mi := &file_update_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -836,7 +942,7 @@ func (x *DeleteDeploymentResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDeploymentResp.ProtoReflect.Descriptor instead.
 func (*DeleteDeploymentResp) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{15}
+	return file_update_service_proto_rawDescGZIP(), []int{17}
 }
 
 type StartAppResp struct {
@@ -850,7 +956,7 @@ type StartAppResp struct {
 
 func (x *StartAppResp) Reset() {
 	*x = StartAppResp{}
-	mi := &file_update_service_proto_msgTypes[16]
+	mi := &file_update_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -862,7 +968,7 @@ func (x *StartAppResp) String() string {
 func (*StartAppResp) ProtoMessage() {}
 
 func (x *StartAppResp) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[16]
+	mi := &file_update_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -875,7 +981,7 @@ func (x *StartAppResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartAppResp.ProtoReflect.Descriptor instead.
 func (*StartAppResp) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{16}
+	return file_update_service_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *StartAppResp) GetSuccess() bool {
@@ -903,7 +1009,7 @@ type StopAppResp struct {
 
 func (x *StopAppResp) Reset() {
 	*x = StopAppResp{}
-	mi := &file_update_service_proto_msgTypes[17]
+	mi := &file_update_service_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -915,7 +1021,7 @@ func (x *StopAppResp) String() string {
 func (*StopAppResp) ProtoMessage() {}
 
 func (x *StopAppResp) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[17]
+	mi := &file_update_service_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -928,7 +1034,7 @@ func (x *StopAppResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopAppResp.ProtoReflect.Descriptor instead.
 func (*StopAppResp) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{17}
+	return file_update_service_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *StopAppResp) GetSuccess() bool {
@@ -957,7 +1063,7 @@ type QueryAppResp struct {
 
 func (x *QueryAppResp) Reset() {
 	*x = QueryAppResp{}
-	mi := &file_update_service_proto_msgTypes[18]
+	mi := &file_update_service_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -969,7 +1075,7 @@ func (x *QueryAppResp) String() string {
 func (*QueryAppResp) ProtoMessage() {}
 
 func (x *QueryAppResp) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[18]
+	mi := &file_update_service_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -982,7 +1088,7 @@ func (x *QueryAppResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryAppResp.ProtoReflect.Descriptor instead.
 func (*QueryAppResp) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{18}
+	return file_update_service_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *QueryAppResp) GetSuccess() bool {
@@ -1018,7 +1124,7 @@ type HealthCheckAppResp struct {
 
 func (x *HealthCheckAppResp) Reset() {
 	*x = HealthCheckAppResp{}
-	mi := &file_update_service_proto_msgTypes[19]
+	mi := &file_update_service_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1030,7 +1136,7 @@ func (x *HealthCheckAppResp) String() string {
 func (*HealthCheckAppResp) ProtoMessage() {}
 
 func (x *HealthCheckAppResp) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[19]
+	mi := &file_update_service_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1043,7 +1149,7 @@ func (x *HealthCheckAppResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthCheckAppResp.ProtoReflect.Descriptor instead.
 func (*HealthCheckAppResp) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{19}
+	return file_update_service_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *HealthCheckAppResp) GetSuccess() bool {
@@ -1079,7 +1185,7 @@ type AvailabilityCheckAppResp struct {
 
 func (x *AvailabilityCheckAppResp) Reset() {
 	*x = AvailabilityCheckAppResp{}
-	mi := &file_update_service_proto_msgTypes[20]
+	mi := &file_update_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1091,7 +1197,7 @@ func (x *AvailabilityCheckAppResp) String() string {
 func (*AvailabilityCheckAppResp) ProtoMessage() {}
 
 func (x *AvailabilityCheckAppResp) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[20]
+	mi := &file_update_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1104,7 +1210,7 @@ func (x *AvailabilityCheckAppResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AvailabilityCheckAppResp.ProtoReflect.Descriptor instead.
 func (*AvailabilityCheckAppResp) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{20}
+	return file_update_service_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *AvailabilityCheckAppResp) GetSuccess() bool {
@@ -1142,7 +1248,7 @@ type WorkerTask struct {
 
 func (x *WorkerTask) Reset() {
 	*x = WorkerTask{}
-	mi := &file_update_service_proto_msgTypes[21]
+	mi := &file_update_service_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1154,7 +1260,7 @@ func (x *WorkerTask) String() string {
 func (*WorkerTask) ProtoMessage() {}
 
 func (x *WorkerTask) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[21]
+	mi := &file_update_service_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1167,7 +1273,7 @@ func (x *WorkerTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkerTask.ProtoReflect.Descriptor instead.
 func (*WorkerTask) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{21}
+	return file_update_service_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *WorkerTask) GetTaskType() string {
@@ -1217,7 +1323,7 @@ type TaskResponse struct {
 
 func (x *TaskResponse) Reset() {
 	*x = TaskResponse{}
-	mi := &file_update_service_proto_msgTypes[22]
+	mi := &file_update_service_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1229,7 +1335,7 @@ func (x *TaskResponse) String() string {
 func (*TaskResponse) ProtoMessage() {}
 
 func (x *TaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[22]
+	mi := &file_update_service_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1242,7 +1348,7 @@ func (x *TaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskResponse.ProtoReflect.Descriptor instead.
 func (*TaskResponse) Descriptor() ([]byte, []int) {
-	return file_update_service_proto_rawDescGZIP(), []int{22}
+	return file_update_service_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *TaskResponse) GetPayload() map[string]*anypb.Any {
@@ -1266,37 +1372,29 @@ func (x *TaskResponse) GetErrorType() string {
 	return ""
 }
 
-type AddDeploymentReq_Spec struct {
+type RevisionInfo struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	SelectorLabels    map[string]string          `protobuf:"bytes,1,rep,name=selectorLabels,proto3" json:"selectorLabels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	AppCount          int64                      `protobuf:"varint,2,opt,name=appCount,proto3" json:"appCount,omitempty"`
-	RevisionLimit     *int64                     `protobuf:"varint,3,opt,name=revisionLimit,proto3,oneof" json:"revisionLimit,omitempty"`
-	Strategy          *DeploymentStrategy        `protobuf:"bytes,4,opt,name=strategy,proto3" json:"strategy,omitempty"`
-	App               *AddDeploymentReq_Spec_App `protobuf:"bytes,5,opt,name=app,proto3" json:"app,omitempty"`
-	MinReadySeconds   int64                      `protobuf:"varint,6,opt,name=minReadySeconds,proto3" json:"minReadySeconds,omitempty"`
-	DeadlineExceeded  int64                      `protobuf:"varint,7,opt,name=deadlineExceeded,proto3" json:"deadlineExceeded,omitempty"`
-	AutomaticRollback *bool                      `protobuf:"varint,8,opt,name=automaticRollback,proto3,oneof" json:"automaticRollback,omitempty"`
-	Mode              string                     `protobuf:"bytes,9,opt,name=mode,proto3" json:"mode,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 }
 
-func (x *AddDeploymentReq_Spec) Reset() {
-	*x = AddDeploymentReq_Spec{}
-	mi := &file_update_service_proto_msgTypes[24]
+func (x *RevisionInfo) Reset() {
+	*x = RevisionInfo{}
+	mi := &file_update_service_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddDeploymentReq_Spec) String() string {
+func (x *RevisionInfo) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddDeploymentReq_Spec) ProtoMessage() {}
+func (*RevisionInfo) ProtoMessage() {}
 
-func (x *AddDeploymentReq_Spec) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[24]
+func (x *RevisionInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_update_service_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1307,75 +1405,128 @@ func (x *AddDeploymentReq_Spec) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddDeploymentReq_Spec.ProtoReflect.Descriptor instead.
-func (*AddDeploymentReq_Spec) Descriptor() ([]byte, []int) {
+// Deprecated: Use RevisionInfo.ProtoReflect.Descriptor instead.
+func (*RevisionInfo) Descriptor() ([]byte, []int) {
+	return file_update_service_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *RevisionInfo) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type PutDeploymentReq_Spec struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SelectorLabels    map[string]string          `protobuf:"bytes,1,rep,name=selectorLabels,proto3" json:"selectorLabels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	AppCount          int64                      `protobuf:"varint,2,opt,name=appCount,proto3" json:"appCount,omitempty"`
+	RevisionLimit     *int64                     `protobuf:"varint,3,opt,name=revisionLimit,proto3,oneof" json:"revisionLimit,omitempty"`
+	Strategy          *DeploymentStrategy        `protobuf:"bytes,4,opt,name=strategy,proto3" json:"strategy,omitempty"`
+	App               *PutDeploymentReq_Spec_App `protobuf:"bytes,5,opt,name=app,proto3" json:"app,omitempty"`
+	MinReadySeconds   int64                      `protobuf:"varint,6,opt,name=minReadySeconds,proto3" json:"minReadySeconds,omitempty"`
+	DeadlineExceeded  int64                      `protobuf:"varint,7,opt,name=deadlineExceeded,proto3" json:"deadlineExceeded,omitempty"`
+	AutomaticRollback *bool                      `protobuf:"varint,8,opt,name=automaticRollback,proto3,oneof" json:"automaticRollback,omitempty"`
+	Mode              string                     `protobuf:"bytes,9,opt,name=mode,proto3" json:"mode,omitempty"`
+}
+
+func (x *PutDeploymentReq_Spec) Reset() {
+	*x = PutDeploymentReq_Spec{}
+	mi := &file_update_service_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutDeploymentReq_Spec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutDeploymentReq_Spec) ProtoMessage() {}
+
+func (x *PutDeploymentReq_Spec) ProtoReflect() protoreflect.Message {
+	mi := &file_update_service_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutDeploymentReq_Spec.ProtoReflect.Descriptor instead.
+func (*PutDeploymentReq_Spec) Descriptor() ([]byte, []int) {
 	return file_update_service_proto_rawDescGZIP(), []int{0, 1}
 }
 
-func (x *AddDeploymentReq_Spec) GetSelectorLabels() map[string]string {
+func (x *PutDeploymentReq_Spec) GetSelectorLabels() map[string]string {
 	if x != nil {
 		return x.SelectorLabels
 	}
 	return nil
 }
 
-func (x *AddDeploymentReq_Spec) GetAppCount() int64 {
+func (x *PutDeploymentReq_Spec) GetAppCount() int64 {
 	if x != nil {
 		return x.AppCount
 	}
 	return 0
 }
 
-func (x *AddDeploymentReq_Spec) GetRevisionLimit() int64 {
+func (x *PutDeploymentReq_Spec) GetRevisionLimit() int64 {
 	if x != nil && x.RevisionLimit != nil {
 		return *x.RevisionLimit
 	}
 	return 0
 }
 
-func (x *AddDeploymentReq_Spec) GetStrategy() *DeploymentStrategy {
+func (x *PutDeploymentReq_Spec) GetStrategy() *DeploymentStrategy {
 	if x != nil {
 		return x.Strategy
 	}
 	return nil
 }
 
-func (x *AddDeploymentReq_Spec) GetApp() *AddDeploymentReq_Spec_App {
+func (x *PutDeploymentReq_Spec) GetApp() *PutDeploymentReq_Spec_App {
 	if x != nil {
 		return x.App
 	}
 	return nil
 }
 
-func (x *AddDeploymentReq_Spec) GetMinReadySeconds() int64 {
+func (x *PutDeploymentReq_Spec) GetMinReadySeconds() int64 {
 	if x != nil {
 		return x.MinReadySeconds
 	}
 	return 0
 }
 
-func (x *AddDeploymentReq_Spec) GetDeadlineExceeded() int64 {
+func (x *PutDeploymentReq_Spec) GetDeadlineExceeded() int64 {
 	if x != nil {
 		return x.DeadlineExceeded
 	}
 	return 0
 }
 
-func (x *AddDeploymentReq_Spec) GetAutomaticRollback() bool {
+func (x *PutDeploymentReq_Spec) GetAutomaticRollback() bool {
 	if x != nil && x.AutomaticRollback != nil {
 		return *x.AutomaticRollback
 	}
 	return false
 }
 
-func (x *AddDeploymentReq_Spec) GetMode() string {
+func (x *PutDeploymentReq_Spec) GetMode() string {
 	if x != nil {
 		return x.Mode
 	}
 	return ""
 }
 
-type AddDeploymentReq_Spec_App struct {
+type PutDeploymentReq_Spec_App struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -1386,21 +1537,21 @@ type AddDeploymentReq_Spec_App struct {
 	SeccompDefinitionStrategy string             `protobuf:"bytes,4,opt,name=seccompDefinitionStrategy,proto3" json:"seccompDefinitionStrategy,omitempty"`
 }
 
-func (x *AddDeploymentReq_Spec_App) Reset() {
-	*x = AddDeploymentReq_Spec_App{}
-	mi := &file_update_service_proto_msgTypes[26]
+func (x *PutDeploymentReq_Spec_App) Reset() {
+	*x = PutDeploymentReq_Spec_App{}
+	mi := &file_update_service_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddDeploymentReq_Spec_App) String() string {
+func (x *PutDeploymentReq_Spec_App) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddDeploymentReq_Spec_App) ProtoMessage() {}
+func (*PutDeploymentReq_Spec_App) ProtoMessage() {}
 
-func (x *AddDeploymentReq_Spec_App) ProtoReflect() protoreflect.Message {
-	mi := &file_update_service_proto_msgTypes[26]
+func (x *PutDeploymentReq_Spec_App) ProtoReflect() protoreflect.Message {
+	mi := &file_update_service_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1411,33 +1562,33 @@ func (x *AddDeploymentReq_Spec_App) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddDeploymentReq_Spec_App.ProtoReflect.Descriptor instead.
-func (*AddDeploymentReq_Spec_App) Descriptor() ([]byte, []int) {
+// Deprecated: Use PutDeploymentReq_Spec_App.ProtoReflect.Descriptor instead.
+func (*PutDeploymentReq_Spec_App) Descriptor() ([]byte, []int) {
 	return file_update_service_proto_rawDescGZIP(), []int{0, 1, 1}
 }
 
-func (x *AddDeploymentReq_Spec_App) GetName() string {
+func (x *PutDeploymentReq_Spec_App) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *AddDeploymentReq_Spec_App) GetQuotas() map[string]float64 {
+func (x *PutDeploymentReq_Spec_App) GetQuotas() map[string]float64 {
 	if x != nil {
 		return x.Quotas
 	}
 	return nil
 }
 
-func (x *AddDeploymentReq_Spec_App) GetProfile() *SeccompProf {
+func (x *PutDeploymentReq_Spec_App) GetProfile() *SeccompProf {
 	if x != nil {
 		return x.Profile
 	}
 	return nil
 }
 
-func (x *AddDeploymentReq_Spec_App) GetSeccompDefinitionStrategy() string {
+func (x *PutDeploymentReq_Spec_App) GetSeccompDefinitionStrategy() string {
 	if x != nil {
 		return x.SeccompDefinitionStrategy
 	}
@@ -1452,18 +1603,18 @@ var file_update_service_proto_rawDesc = []byte{
 	0x70, 0x64, 0x61, 0x74, 0x65, 0x2d, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2d, 0x6d, 0x6f,
 	0x64, 0x65, 0x6c, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x19, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
 	0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x61, 0x6e, 0x79, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x22, 0xaa, 0x08, 0x0a, 0x10, 0x41, 0x64, 0x64, 0x44, 0x65, 0x70, 0x6c,
+	0x72, 0x6f, 0x74, 0x6f, 0x22, 0xaa, 0x08, 0x0a, 0x10, 0x50, 0x75, 0x74, 0x44, 0x65, 0x70, 0x6c,
 	0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d,
 	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x0a,
 	0x09, 0x6e, 0x61, 0x6d, 0x65, 0x73, 0x70, 0x61, 0x63, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
 	0x52, 0x09, 0x6e, 0x61, 0x6d, 0x65, 0x73, 0x70, 0x61, 0x63, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x6f,
 	0x72, 0x67, 0x49, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x6f, 0x72, 0x67, 0x49,
 	0x64, 0x12, 0x3b, 0x0a, 0x06, 0x6c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28,
-	0x0b, 0x32, 0x23, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x64, 0x64, 0x44, 0x65, 0x70,
+	0x0b, 0x32, 0x23, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x75, 0x74, 0x44, 0x65, 0x70,
 	0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x2e, 0x4c, 0x61, 0x62, 0x65, 0x6c,
 	0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x06, 0x6c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x12, 0x30,
 	0x0a, 0x04, 0x73, 0x70, 0x65, 0x63, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x64, 0x64, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
+	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x75, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
 	0x6e, 0x74, 0x52, 0x65, 0x71, 0x2e, 0x53, 0x70, 0x65, 0x63, 0x52, 0x04, 0x73, 0x70, 0x65, 0x63,
 	0x1a, 0x39, 0x0a, 0x0b, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12,
 	0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65,
@@ -1471,7 +1622,7 @@ var file_update_service_proto_rawDesc = []byte{
 	0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0xa3, 0x06, 0x0a, 0x04,
 	0x53, 0x70, 0x65, 0x63, 0x12, 0x58, 0x0a, 0x0e, 0x73, 0x65, 0x6c, 0x65, 0x63, 0x74, 0x6f, 0x72,
 	0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x30, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x64, 0x64, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
+	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x75, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
 	0x6e, 0x74, 0x52, 0x65, 0x71, 0x2e, 0x53, 0x70, 0x65, 0x63, 0x2e, 0x53, 0x65, 0x6c, 0x65, 0x63,
 	0x74, 0x6f, 0x72, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0e,
 	0x73, 0x65, 0x6c, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x12, 0x1a,
@@ -1484,7 +1635,7 @@ var file_update_service_proto_rawDesc = []byte{
 	0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x74, 0x72, 0x61, 0x74, 0x65,
 	0x67, 0x79, 0x52, 0x08, 0x73, 0x74, 0x72, 0x61, 0x74, 0x65, 0x67, 0x79, 0x12, 0x32, 0x0a, 0x03,
 	0x61, 0x70, 0x70, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2e, 0x41, 0x64, 0x64, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52,
+	0x6f, 0x2e, 0x50, 0x75, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52,
 	0x65, 0x71, 0x2e, 0x53, 0x70, 0x65, 0x63, 0x2e, 0x41, 0x70, 0x70, 0x52, 0x03, 0x61, 0x70, 0x70,
 	0x12, 0x28, 0x0a, 0x0f, 0x6d, 0x69, 0x6e, 0x52, 0x65, 0x61, 0x64, 0x79, 0x53, 0x65, 0x63, 0x6f,
 	0x6e, 0x64, 0x73, 0x18, 0x06, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0f, 0x6d, 0x69, 0x6e, 0x52, 0x65,
@@ -1503,7 +1654,7 @@ var file_update_service_proto_rawDesc = []byte{
 	0x1a, 0x86, 0x02, 0x0a, 0x03, 0x41, 0x70, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65,
 	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x44, 0x0a, 0x06,
 	0x71, 0x75, 0x6f, 0x74, 0x61, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2c, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x64, 0x64, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
+	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x75, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
 	0x6e, 0x74, 0x52, 0x65, 0x71, 0x2e, 0x53, 0x70, 0x65, 0x63, 0x2e, 0x41, 0x70, 0x70, 0x2e, 0x51,
 	0x75, 0x6f, 0x74, 0x61, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x06, 0x71, 0x75, 0x6f, 0x74,
 	0x61, 0x73, 0x12, 0x2c, 0x0a, 0x07, 0x70, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x18, 0x03, 0x20,
@@ -1519,7 +1670,7 @@ var file_update_service_proto_rawDesc = []byte{
 	0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x42, 0x10, 0x0a, 0x0e, 0x5f, 0x72, 0x65,
 	0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x4c, 0x69, 0x6d, 0x69, 0x74, 0x42, 0x14, 0x0a, 0x12, 0x5f,
 	0x61, 0x75, 0x74, 0x6f, 0x6d, 0x61, 0x74, 0x69, 0x63, 0x52, 0x6f, 0x6c, 0x6c, 0x62, 0x61, 0x63,
-	0x6b, 0x22, 0x13, 0x0a, 0x11, 0x41, 0x64, 0x64, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
+	0x6b, 0x22, 0x13, 0x0a, 0x11, 0x50, 0x75, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
 	0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x81, 0x01, 0x0a, 0x13, 0x52, 0x6f, 0x6c, 0x6c, 0x62,
 	0x61, 0x63, 0x6b, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x12, 0x12,
 	0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61,
@@ -1567,6 +1718,16 @@ var file_update_service_proto_rawDesc = []byte{
 	0x70, 0x12, 0x2d, 0x0a, 0x09, 0x72, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x01,
 	0x20, 0x03, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x65, 0x76,
 	0x69, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x09, 0x72, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x73,
+	0x22, 0x5b, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x4e, 0x65, 0x77, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69,
+	0x6f, 0x6e, 0x52, 0x65, 0x71, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x6e, 0x61, 0x6d,
+	0x65, 0x73, 0x70, 0x61, 0x63, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x6e, 0x61,
+	0x6d, 0x65, 0x73, 0x70, 0x61, 0x63, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x6f, 0x72, 0x67, 0x49, 0x64,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x6f, 0x72, 0x67, 0x49, 0x64, 0x22, 0x41, 0x0a,
+	0x12, 0x47, 0x65, 0x74, 0x4e, 0x65, 0x77, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x52,
+	0x65, 0x73, 0x70, 0x12, 0x2b, 0x0a, 0x08, 0x72, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x65,
+	0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x08, 0x72, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e,
 	0x22, 0x5b, 0x0a, 0x11, 0x53, 0x74, 0x6f, 0x70, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
 	0x6e, 0x74, 0x52, 0x65, 0x71, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20,
 	0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x6e, 0x61, 0x6d,
@@ -1646,50 +1807,57 @@ var file_update_service_proto_rawDesc = []byte{
 	0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x2a, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
 	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e,
 	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x41, 0x6e, 0x79, 0x52, 0x05, 0x76, 0x61,
-	0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x32, 0x90, 0x05, 0x0a, 0x0d, 0x55, 0x70, 0x64, 0x61,
-	0x74, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x44, 0x0a, 0x0d, 0x41, 0x64, 0x64,
-	0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x17, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x2e, 0x41, 0x64, 0x64, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74,
-	0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x64, 0x64, 0x44,
-	0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12,
-	0x44, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74,
-	0x12, 0x17, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x65, 0x70, 0x6c,
-	0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52,
-	0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x6e, 0x0a, 0x1b, 0x47, 0x65, 0x74, 0x44, 0x65, 0x70, 0x6c,
-	0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x4f, 0x77, 0x6e, 0x65, 0x64, 0x52, 0x65, 0x76, 0x69, 0x73,
-	0x69, 0x6f, 0x6e, 0x73, 0x12, 0x25, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74,
+	0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x22, 0x0a, 0x0c, 0x52, 0x65, 0x76, 0x69, 0x73,
+	0x69, 0x6f, 0x6e, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x32, 0xd9, 0x05, 0x0a, 0x0d,
+	0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x44, 0x0a,
+	0x0d, 0x50, 0x75, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x17,
+	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x75, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79,
+	0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
+	0x50, 0x75, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73,
+	0x70, 0x22, 0x00, 0x12, 0x44, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79,
+	0x6d, 0x65, 0x6e, 0x74, 0x12, 0x17, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74,
+	0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x18, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d,
+	0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x6e, 0x0a, 0x1b, 0x47, 0x65, 0x74,
 	0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x4f, 0x77, 0x6e, 0x65, 0x64, 0x52,
-	0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x71, 0x1a, 0x26, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e,
-	0x74, 0x4f, 0x77, 0x6e, 0x65, 0x64, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x52,
-	0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x4d, 0x0a, 0x10, 0x52, 0x6f, 0x6c, 0x6c, 0x62, 0x61, 0x63,
-	0x6b, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x1a, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2e, 0x52, 0x6f, 0x6c, 0x6c, 0x62, 0x61, 0x63, 0x6b, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69,
-	0x6f, 0x6e, 0x52, 0x65, 0x71, 0x1a, 0x1b, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x6f,
-	0x6c, 0x6c, 0x62, 0x61, 0x63, 0x6b, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65,
-	0x73, 0x70, 0x22, 0x00, 0x12, 0x4a, 0x0a, 0x0f, 0x50, 0x61, 0x75, 0x73, 0x65, 0x44, 0x65, 0x70,
-	0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x19, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
-	0x50, 0x61, 0x75, 0x73, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52,
-	0x65, 0x71, 0x1a, 0x1a, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x61, 0x75, 0x73, 0x65,
-	0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00,
-	0x12, 0x50, 0x0a, 0x11, 0x55, 0x6e, 0x70, 0x61, 0x75, 0x73, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f,
-	0x79, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x1b, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x55, 0x6e,
-	0x70, 0x61, 0x75, 0x73, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52,
-	0x65, 0x71, 0x1a, 0x1c, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x55, 0x6e, 0x70, 0x61, 0x75,
-	0x73, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70,
-	0x22, 0x00, 0x12, 0x47, 0x0a, 0x0e, 0x53, 0x74, 0x6f, 0x70, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79,
-	0x6d, 0x65, 0x6e, 0x74, 0x12, 0x18, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x53, 0x74, 0x6f,
-	0x70, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x19,
-	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x53, 0x74, 0x6f, 0x70, 0x44, 0x65, 0x70, 0x6c, 0x6f,
-	0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x4d, 0x0a, 0x10, 0x44,
-	0x65, 0x6c, 0x65, 0x74, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x12,
-	0x1a, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x44, 0x65,
-	0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x1b, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79,
-	0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x42, 0x18, 0x5a, 0x16, 0x75, 0x70,
-	0x64, 0x61, 0x74, 0x65, 0x2d, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2f, 0x70, 0x6b, 0x67,
-	0x2f, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x25, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x2e, 0x47, 0x65, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x4f, 0x77,
+	0x6e, 0x65, 0x64, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x71, 0x1a,
+	0x26, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x65, 0x70, 0x6c, 0x6f,
+	0x79, 0x6d, 0x65, 0x6e, 0x74, 0x4f, 0x77, 0x6e, 0x65, 0x64, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69,
+	0x6f, 0x6e, 0x73, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x47, 0x0a, 0x0e, 0x47, 0x65, 0x74,
+	0x4e, 0x65, 0x77, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x18, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x4e, 0x65, 0x77, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69,
+	0x6f, 0x6e, 0x52, 0x65, 0x71, 0x1a, 0x19, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65,
+	0x74, 0x4e, 0x65, 0x77, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x70,
+	0x22, 0x00, 0x12, 0x4d, 0x0a, 0x10, 0x52, 0x6f, 0x6c, 0x6c, 0x62, 0x61, 0x63, 0x6b, 0x52, 0x65,
+	0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x1a, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52,
+	0x6f, 0x6c, 0x6c, 0x62, 0x61, 0x63, 0x6b, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x52,
+	0x65, 0x71, 0x1a, 0x1b, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x6f, 0x6c, 0x6c, 0x62,
+	0x61, 0x63, 0x6b, 0x52, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x22,
+	0x00, 0x12, 0x4a, 0x0a, 0x0f, 0x50, 0x61, 0x75, 0x73, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79,
+	0x6d, 0x65, 0x6e, 0x74, 0x12, 0x19, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x61, 0x75,
+	0x73, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x1a,
+	0x1a, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x61, 0x75, 0x73, 0x65, 0x44, 0x65, 0x70,
+	0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x50, 0x0a,
+	0x11, 0x55, 0x6e, 0x70, 0x61, 0x75, 0x73, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
+	0x6e, 0x74, 0x12, 0x1b, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x55, 0x6e, 0x70, 0x61, 0x75,
+	0x73, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x1a,
+	0x1c, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x55, 0x6e, 0x70, 0x61, 0x75, 0x73, 0x65, 0x44,
+	0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12,
+	0x47, 0x0a, 0x0e, 0x53, 0x74, 0x6f, 0x70, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e,
+	0x74, 0x12, 0x18, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x53, 0x74, 0x6f, 0x70, 0x44, 0x65,
+	0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x19, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x2e, 0x53, 0x74, 0x6f, 0x70, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65,
+	0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x12, 0x4d, 0x0a, 0x10, 0x44, 0x65, 0x6c, 0x65,
+	0x74, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x1a, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f,
+	0x79, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x1a, 0x1b, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x44, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x6d, 0x65, 0x6e,
+	0x74, 0x52, 0x65, 0x73, 0x70, 0x22, 0x00, 0x42, 0x18, 0x5a, 0x16, 0x75, 0x70, 0x64, 0x61, 0x74,
+	0x65, 0x2d, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x70,
+	0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1704,10 +1872,10 @@ func file_update_service_proto_rawDescGZIP() []byte {
 	return file_update_service_proto_rawDescData
 }
 
-var file_update_service_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_update_service_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_update_service_proto_goTypes = []any{
-	(*AddDeploymentReq)(nil),                // 0: proto.AddDeploymentReq
-	(*AddDeploymentResp)(nil),               // 1: proto.AddDeploymentResp
+	(*PutDeploymentReq)(nil),                // 0: proto.PutDeploymentReq
+	(*PutDeploymentResp)(nil),               // 1: proto.PutDeploymentResp
 	(*RollbackRevisionReq)(nil),             // 2: proto.RollbackRevisionReq
 	(*RollbackRevisionResp)(nil),            // 3: proto.RollbackRevisionResp
 	(*PauseDeploymentReq)(nil),              // 4: proto.PauseDeploymentReq
@@ -1718,67 +1886,73 @@ var file_update_service_proto_goTypes = []any{
 	(*GetDeploymentResp)(nil),               // 9: proto.GetDeploymentResp
 	(*GetDeploymentOwnedRevisionsReq)(nil),  // 10: proto.GetDeploymentOwnedRevisionsReq
 	(*GetDeploymentOwnedRevisionsResp)(nil), // 11: proto.GetDeploymentOwnedRevisionsResp
-	(*StopDeploymentReq)(nil),               // 12: proto.StopDeploymentReq
-	(*StopDeploymentResp)(nil),              // 13: proto.StopDeploymentResp
-	(*DeleteDeploymentReq)(nil),             // 14: proto.DeleteDeploymentReq
-	(*DeleteDeploymentResp)(nil),            // 15: proto.DeleteDeploymentResp
-	(*StartAppResp)(nil),                    // 16: proto.StartAppResp
-	(*StopAppResp)(nil),                     // 17: proto.StopAppResp
-	(*QueryAppResp)(nil),                    // 18: proto.QueryAppResp
-	(*HealthCheckAppResp)(nil),              // 19: proto.HealthCheckAppResp
-	(*AvailabilityCheckAppResp)(nil),        // 20: proto.AvailabilityCheckAppResp
-	(*WorkerTask)(nil),                      // 21: proto.WorkerTask
-	(*TaskResponse)(nil),                    // 22: proto.TaskResponse
-	nil,                                     // 23: proto.AddDeploymentReq.LabelsEntry
-	(*AddDeploymentReq_Spec)(nil),           // 24: proto.AddDeploymentReq.Spec
-	nil,                                     // 25: proto.AddDeploymentReq.Spec.SelectorLabelsEntry
-	(*AddDeploymentReq_Spec_App)(nil),       // 26: proto.AddDeploymentReq.Spec.App
-	nil,                                     // 27: proto.AddDeploymentReq.Spec.App.QuotasEntry
-	nil,                                     // 28: proto.WorkerTask.PayloadEntry
-	nil,                                     // 29: proto.TaskResponse.PayloadEntry
-	(*Deployment)(nil),                      // 30: proto.Deployment
-	(*Revision)(nil),                        // 31: proto.Revision
-	(*App)(nil),                             // 32: proto.App
-	(*DeploymentStrategy)(nil),              // 33: proto.DeploymentStrategy
-	(*SeccompProf)(nil),                     // 34: proto.SeccompProf
-	(*anypb.Any)(nil),                       // 35: google.protobuf.Any
+	(*GetNewRevisionReq)(nil),               // 12: proto.GetNewRevisionReq
+	(*GetNewRevisionResp)(nil),              // 13: proto.GetNewRevisionResp
+	(*StopDeploymentReq)(nil),               // 14: proto.StopDeploymentReq
+	(*StopDeploymentResp)(nil),              // 15: proto.StopDeploymentResp
+	(*DeleteDeploymentReq)(nil),             // 16: proto.DeleteDeploymentReq
+	(*DeleteDeploymentResp)(nil),            // 17: proto.DeleteDeploymentResp
+	(*StartAppResp)(nil),                    // 18: proto.StartAppResp
+	(*StopAppResp)(nil),                     // 19: proto.StopAppResp
+	(*QueryAppResp)(nil),                    // 20: proto.QueryAppResp
+	(*HealthCheckAppResp)(nil),              // 21: proto.HealthCheckAppResp
+	(*AvailabilityCheckAppResp)(nil),        // 22: proto.AvailabilityCheckAppResp
+	(*WorkerTask)(nil),                      // 23: proto.WorkerTask
+	(*TaskResponse)(nil),                    // 24: proto.TaskResponse
+	(*RevisionInfo)(nil),                    // 25: proto.RevisionInfo
+	nil,                                     // 26: proto.PutDeploymentReq.LabelsEntry
+	(*PutDeploymentReq_Spec)(nil),           // 27: proto.PutDeploymentReq.Spec
+	nil,                                     // 28: proto.PutDeploymentReq.Spec.SelectorLabelsEntry
+	(*PutDeploymentReq_Spec_App)(nil),       // 29: proto.PutDeploymentReq.Spec.App
+	nil,                                     // 30: proto.PutDeploymentReq.Spec.App.QuotasEntry
+	nil,                                     // 31: proto.WorkerTask.PayloadEntry
+	nil,                                     // 32: proto.TaskResponse.PayloadEntry
+	(*Deployment)(nil),                      // 33: proto.Deployment
+	(*Revision)(nil),                        // 34: proto.Revision
+	(*App)(nil),                             // 35: proto.App
+	(*DeploymentStrategy)(nil),              // 36: proto.DeploymentStrategy
+	(*SeccompProf)(nil),                     // 37: proto.SeccompProf
+	(*anypb.Any)(nil),                       // 38: google.protobuf.Any
 }
 var file_update_service_proto_depIdxs = []int32{
-	23, // 0: proto.AddDeploymentReq.labels:type_name -> proto.AddDeploymentReq.LabelsEntry
-	24, // 1: proto.AddDeploymentReq.spec:type_name -> proto.AddDeploymentReq.Spec
-	30, // 2: proto.GetDeploymentResp.deployment:type_name -> proto.Deployment
-	31, // 3: proto.GetDeploymentOwnedRevisionsResp.revisions:type_name -> proto.Revision
-	32, // 4: proto.QueryAppResp.apps:type_name -> proto.App
-	28, // 5: proto.WorkerTask.payload:type_name -> proto.WorkerTask.PayloadEntry
-	29, // 6: proto.TaskResponse.payload:type_name -> proto.TaskResponse.PayloadEntry
-	25, // 7: proto.AddDeploymentReq.Spec.selectorLabels:type_name -> proto.AddDeploymentReq.Spec.SelectorLabelsEntry
-	33, // 8: proto.AddDeploymentReq.Spec.strategy:type_name -> proto.DeploymentStrategy
-	26, // 9: proto.AddDeploymentReq.Spec.app:type_name -> proto.AddDeploymentReq.Spec.App
-	27, // 10: proto.AddDeploymentReq.Spec.App.quotas:type_name -> proto.AddDeploymentReq.Spec.App.QuotasEntry
-	34, // 11: proto.AddDeploymentReq.Spec.App.profile:type_name -> proto.SeccompProf
-	35, // 12: proto.WorkerTask.PayloadEntry.value:type_name -> google.protobuf.Any
-	35, // 13: proto.TaskResponse.PayloadEntry.value:type_name -> google.protobuf.Any
-	0,  // 14: proto.UpdateService.AddDeployment:input_type -> proto.AddDeploymentReq
-	8,  // 15: proto.UpdateService.GetDeployment:input_type -> proto.GetDeploymentReq
-	10, // 16: proto.UpdateService.GetDeploymentOwnedRevisions:input_type -> proto.GetDeploymentOwnedRevisionsReq
-	2,  // 17: proto.UpdateService.RollbackRevision:input_type -> proto.RollbackRevisionReq
-	4,  // 18: proto.UpdateService.PauseDeployment:input_type -> proto.PauseDeploymentReq
-	6,  // 19: proto.UpdateService.UnpauseDeployment:input_type -> proto.UnpauseDeploymentReq
-	12, // 20: proto.UpdateService.StopDeployment:input_type -> proto.StopDeploymentReq
-	14, // 21: proto.UpdateService.DeleteDeployment:input_type -> proto.DeleteDeploymentReq
-	1,  // 22: proto.UpdateService.AddDeployment:output_type -> proto.AddDeploymentResp
-	9,  // 23: proto.UpdateService.GetDeployment:output_type -> proto.GetDeploymentResp
-	11, // 24: proto.UpdateService.GetDeploymentOwnedRevisions:output_type -> proto.GetDeploymentOwnedRevisionsResp
-	3,  // 25: proto.UpdateService.RollbackRevision:output_type -> proto.RollbackRevisionResp
-	5,  // 26: proto.UpdateService.PauseDeployment:output_type -> proto.PauseDeploymentResp
-	7,  // 27: proto.UpdateService.UnpauseDeployment:output_type -> proto.UnpauseDeploymentResp
-	13, // 28: proto.UpdateService.StopDeployment:output_type -> proto.StopDeploymentResp
-	15, // 29: proto.UpdateService.DeleteDeployment:output_type -> proto.DeleteDeploymentResp
-	22, // [22:30] is the sub-list for method output_type
-	14, // [14:22] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	26, // 0: proto.PutDeploymentReq.labels:type_name -> proto.PutDeploymentReq.LabelsEntry
+	27, // 1: proto.PutDeploymentReq.spec:type_name -> proto.PutDeploymentReq.Spec
+	33, // 2: proto.GetDeploymentResp.deployment:type_name -> proto.Deployment
+	34, // 3: proto.GetDeploymentOwnedRevisionsResp.revisions:type_name -> proto.Revision
+	34, // 4: proto.GetNewRevisionResp.revision:type_name -> proto.Revision
+	35, // 5: proto.QueryAppResp.apps:type_name -> proto.App
+	31, // 6: proto.WorkerTask.payload:type_name -> proto.WorkerTask.PayloadEntry
+	32, // 7: proto.TaskResponse.payload:type_name -> proto.TaskResponse.PayloadEntry
+	28, // 8: proto.PutDeploymentReq.Spec.selectorLabels:type_name -> proto.PutDeploymentReq.Spec.SelectorLabelsEntry
+	36, // 9: proto.PutDeploymentReq.Spec.strategy:type_name -> proto.DeploymentStrategy
+	29, // 10: proto.PutDeploymentReq.Spec.app:type_name -> proto.PutDeploymentReq.Spec.App
+	30, // 11: proto.PutDeploymentReq.Spec.App.quotas:type_name -> proto.PutDeploymentReq.Spec.App.QuotasEntry
+	37, // 12: proto.PutDeploymentReq.Spec.App.profile:type_name -> proto.SeccompProf
+	38, // 13: proto.WorkerTask.PayloadEntry.value:type_name -> google.protobuf.Any
+	38, // 14: proto.TaskResponse.PayloadEntry.value:type_name -> google.protobuf.Any
+	0,  // 15: proto.UpdateService.PutDeployment:input_type -> proto.PutDeploymentReq
+	8,  // 16: proto.UpdateService.GetDeployment:input_type -> proto.GetDeploymentReq
+	10, // 17: proto.UpdateService.GetDeploymentOwnedRevisions:input_type -> proto.GetDeploymentOwnedRevisionsReq
+	12, // 18: proto.UpdateService.GetNewRevision:input_type -> proto.GetNewRevisionReq
+	2,  // 19: proto.UpdateService.RollbackRevision:input_type -> proto.RollbackRevisionReq
+	4,  // 20: proto.UpdateService.PauseDeployment:input_type -> proto.PauseDeploymentReq
+	6,  // 21: proto.UpdateService.UnpauseDeployment:input_type -> proto.UnpauseDeploymentReq
+	14, // 22: proto.UpdateService.StopDeployment:input_type -> proto.StopDeploymentReq
+	16, // 23: proto.UpdateService.DeleteDeployment:input_type -> proto.DeleteDeploymentReq
+	1,  // 24: proto.UpdateService.PutDeployment:output_type -> proto.PutDeploymentResp
+	9,  // 25: proto.UpdateService.GetDeployment:output_type -> proto.GetDeploymentResp
+	11, // 26: proto.UpdateService.GetDeploymentOwnedRevisions:output_type -> proto.GetDeploymentOwnedRevisionsResp
+	13, // 27: proto.UpdateService.GetNewRevision:output_type -> proto.GetNewRevisionResp
+	3,  // 28: proto.UpdateService.RollbackRevision:output_type -> proto.RollbackRevisionResp
+	5,  // 29: proto.UpdateService.PauseDeployment:output_type -> proto.PauseDeploymentResp
+	7,  // 30: proto.UpdateService.UnpauseDeployment:output_type -> proto.UnpauseDeploymentResp
+	15, // 31: proto.UpdateService.StopDeployment:output_type -> proto.StopDeploymentResp
+	17, // 32: proto.UpdateService.DeleteDeployment:output_type -> proto.DeleteDeploymentResp
+	24, // [24:33] is the sub-list for method output_type
+	15, // [15:24] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_update_service_proto_init() }
@@ -1787,14 +1961,14 @@ func file_update_service_proto_init() {
 		return
 	}
 	file_update_service_model_proto_init()
-	file_update_service_proto_msgTypes[24].OneofWrappers = []any{}
+	file_update_service_proto_msgTypes[27].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_update_service_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   30,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -81,6 +81,7 @@ func DeploymentSpecToDomain(deploymentSpec *api.DeploymentSpec) (domain.Deployme
 		utils.CalculateDefaultRollingValue(rollingUpdate.MaxUnavailable, deploymentSpec.AppCount)
 	}
 
+	// if mode in deploymentSpec is not valid, return error
 	if deploymentSpec.Mode != string(domain.NodeAgentDirectDockerDaemon) &&
 		deploymentSpec.Mode != string(domain.NodeAgentIndirectDockerDaemon) &&
 		deploymentSpec.Mode != string(domain.DirectDockerDaemon) {
@@ -130,6 +131,7 @@ func DeploymentSpecFromDomain(deploymentSpec domain.DeploymentSpec) (*api.Deploy
 		utils.CalculateDefaultRollingValue(rollingUpdate.MaxUnavailable, deploymentSpec.AppCount)
 	}
 
+	// if mode in deploymentSpec is not valid, return error
 	if deploymentSpec.Mode != domain.NodeAgentDirectDockerDaemon &&
 		deploymentSpec.Mode != domain.NodeAgentIndirectDockerDaemon &&
 		deploymentSpec.Mode != domain.DirectDockerDaemon {
@@ -253,7 +255,6 @@ func RevisionToDomain(revision *api.Revision) (*domain.Revision, error) {
 		Labels:            revision.Labels,
 		Spec:              revisionSpec,
 	}
-	// resp.Spec.AppSpec.SelectorLabels["revision"] = revision.Name
 
 	return resp, nil
 }

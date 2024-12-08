@@ -2,9 +2,7 @@ package repos
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log"
 
 	"github.com/milossdjuric/rolling_update_service/internal/domain"
 
@@ -32,13 +30,10 @@ func (d deploymentEtcdRepo) Put(deployment domain.Deployment) error {
 
 	key := getDeploymentKey(deployment)
 
-	fmt.Println("key: ", key)
 	_, err = d.etcd.Put(context.TODO(), key, string(deploymentMarshalled))
 	if err != nil {
 		return err
 	}
-
-	log.Println("ETCD PUT HAPPENED, DEPLOYMENT: ", deployment)
 
 	return nil
 }
@@ -51,7 +46,7 @@ func (d deploymentEtcdRepo) Get(name, namespace, orgId string) (*domain.Deployme
 		return nil, err
 	}
 	if len(resp.Kvs) == 0 {
-		return nil, errors.New("deployment not found")
+		return nil, fmt.Errorf("deployment not found")
 	}
 
 	deploymentUnmarshalled, err := d.deploymentMarshaller.Unmarshal(resp.Kvs[0].Value)

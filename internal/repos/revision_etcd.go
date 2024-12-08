@@ -2,7 +2,6 @@ package repos
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 
@@ -38,9 +37,6 @@ func (r revisionEtcdRepo) Put(revision domain.Revision) error {
 		return err
 	}
 
-	log.Println("Passed etcd put")
-	log.Println("Created revision key: ", key)
-
 	return nil
 }
 
@@ -52,7 +48,7 @@ func (r revisionEtcdRepo) Get(name, namespace, orgId string) (*domain.Revision, 
 		return nil, err
 	}
 	if len(resp.Kvs) == 0 {
-		return nil, errors.New("revision not found")
+		return nil, fmt.Errorf("revision not found")
 	}
 
 	revisionUnmarshalled, err := r.revisionMarshaller.Unmarshal(resp.Kvs[0].Value)
@@ -75,13 +71,13 @@ func (r revisionEtcdRepo) Delete(name, namespace, orgId string) error {
 	return nil
 }
 
-func (r revisionEtcdRepo) GetDeploymentOwnedRevisions(selectorLabels map[string]string, namespace, orgId string) ([]domain.Revision, error) {
+func (r revisionEtcdRepo) GetDeploymentOwned(selectorLabels map[string]string, namespace, orgId string) ([]domain.Revision, error) {
 	keyPrefix := fmt.Sprintf("%s/orgs/%s/%s", revisionPrefix, orgId, namespace)
 
 	return r.SelectRevisions(selectorLabels, keyPrefix)
 }
 
-func (r revisionEtcdRepo) DeleteDeploymentOwnedRevisions(selectorLabels map[string]string, namespace, orgId string) error {
+func (r revisionEtcdRepo) DeleteDeploymentOwned(selectorLabels map[string]string, namespace, orgId string) error {
 	keyPrefix := fmt.Sprintf("%s/orgs/%s/%s", revisionPrefix, orgId, namespace)
 
 	selectedRevisions, err := r.SelectRevisions(selectorLabels, keyPrefix)
@@ -99,15 +95,10 @@ func (r revisionEtcdRepo) DeleteDeploymentOwnedRevisions(selectorLabels map[stri
 
 func (r revisionEtcdRepo) SelectRevisions(selectorLabels map[string]string, keyPrefix string) ([]domain.Revision, error) {
 
-	log.Printf("Revision etcd, keyPrefix: %s", keyPrefix)
-	log.Printf("Revision etcd, selectionLabels: %v", selectorLabels)
-
 	revisions, err := r.etcd.Get(context.TODO(), keyPrefix, etcd.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
-
-	log.Printf("etcd get passed")
 
 	var matchingRevisions []domain.Revision
 

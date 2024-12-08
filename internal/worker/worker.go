@@ -1,8 +1,11 @@
 package worker
 
 import (
-	"errors"
+	"fmt"
 	"sync"
+
+	"github.com/milossdjuric/rolling_update_service/pkg/api"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -11,6 +14,7 @@ const (
 	TaskTypeUnpause  = "Unpause"
 	TaskTypeStop     = "Stop"
 	TaskTypeDelete   = "Delete"
+	TaskTypeAdd      = "Add"
 )
 
 type WorkerTask struct {
@@ -22,7 +26,6 @@ type WorkerTask struct {
 }
 
 type TaskResponse struct {
-	Payload   map[string]interface{}
 	ErrorMsg  string
 	ErrorType string
 }
@@ -42,6 +45,21 @@ type WorkerMap struct {
 	mu      sync.RWMutex
 }
 
+// Registry of payload types for protobuf messages, used for worker tasks
+var TypeRegistry = map[string]func() proto.Message{
+	"type.googleapis.com/proto.Deployment": func() proto.Message { return &api.Deployment{} },
+}
+
+func NewWorkerTask(taskType, deploymentName, deploymentNamespace, deploymentOrgId string, payload map[string]interface{}) WorkerTask {
+	return WorkerTask{
+		TaskType:            taskType,
+		DeploymentName:      deploymentName,
+		DeploymentNamespace: deploymentNamespace,
+		DeploymentOrgId:     deploymentOrgId,
+		Payload:             payload,
+	}
+}
+
 func NewWorkerMap() *WorkerMap {
 	return &WorkerMap{
 		mapping: make(map[string]bool),
@@ -53,7 +71,7 @@ func (wm *WorkerMap) Add(topic string) error {
 	defer wm.mu.Unlock()
 
 	if _, exists := wm.mapping[topic]; exists {
-		return errors.New("worker already exists for this topic")
+		return fmt.Errorf("worker for topic %s already exists", topic)
 	}
 
 	wm.mapping[topic] = true

@@ -70,9 +70,11 @@ type DeploymentState struct {
 type DeploymentMode string
 
 // How the applications will be deployed:
-// DirectDockerDaemon - directly from service to the docker daemon via docker socket
-// NodeAgentDirectDockerDaemon - to node agent which is connected to the docker daemon via docker socket
-// NodeAgentSeperateDockerDaemon - to node agent which has its own docker daemon running on it
+// DirectDockerDaemon - directly from service to the docker daemon via docker socket on local machine
+// NodeAgentDirectDockerDaemon - to node agent which is connected to the docker daemon via docker socket on local machine
+// NodeAgentSeperateDockerDaemon - to node agent which has its own docker daemon running on it, should work on
+// remote machines
+// in future should be replaced with working with gravity service and dissemination of the deployment operations
 const (
 	DirectDockerDaemon            DeploymentMode = "DirectDocker"
 	NodeAgentDirectDockerDaemon   DeploymentMode = "DirectStar"
