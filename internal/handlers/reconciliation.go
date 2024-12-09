@@ -21,6 +21,7 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 	log.Printf("DEPLOYMENT %s: Starting reconcile for deployment", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 
 	// get new and old revision
+	log.Printf("DEPLOYMENT %s: [GET NEW REVISION RECONCILE] Getting new and old revisions...", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 	newRevision, oldRevisions, err := u.GetNewAndOldRevisions(d)
 	if err != nil {
 		return
@@ -441,10 +442,7 @@ func (u *UpdateServiceGrpcHandler) ReconcileOldRevisions(d *domain.Deployment, n
 	oldUnavailableApps := GetOldUnavailableApps(totalApps, availableApps, newRevision)
 
 	//Scale down unavailable/unhealthy old apps
-	stopAppsArgs := append(nodeIds, d.OrgId)
-	stopAppsArgs = append(stopAppsArgs, d.Namespace)
-
-	err = u.StopApps(d, int(maxScaledDown), oldUnavailableApps, stopAppsArgs...)
+	err = u.StopApps(d, int(maxScaledDown), oldUnavailableApps, nodeIds...)
 	if err != nil {
 		return err
 	}

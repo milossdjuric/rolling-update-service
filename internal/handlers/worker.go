@@ -366,6 +366,24 @@ func (u *UpdateServiceGrpcHandler) HandleAddTask(task worker.WorkerTask, replySu
 		return
 	}
 
+	// newRevision, _, err := u.GetNewAndOldRevisions(deployment)
+	// if err != nil {
+	// 	resp.ErrorType = worker.ErrorTypeInternal
+	// 	resp.ErrorMsg = "Failed to get new and old revisions"
+	// 	u.SendTaskResponse(replySubject, resp)
+	// 	return
+	// }
+
+	// log.Printf("[HANDLE ADD TASK] New revision: %v", newRevision)
+
+	// err = u.revisionRepo.Put(*newRevision)
+	// if err != nil {
+	// 	resp.ErrorType = worker.ErrorTypeInternal
+	// 	resp.ErrorMsg = "Failed to put new revision"
+	// 	u.SendTaskResponse(replySubject, resp)
+	// 	return
+	// }
+
 	err = u.SaveDeployment(deployment)
 	if err != nil {
 		resp.ErrorType = worker.ErrorTypeInternal

@@ -55,6 +55,8 @@ func (u UpdateServiceGrpcHandler) PutDeployment(ctx context.Context, req *api.Pu
 	// 	return nil, status.Error(codes.Internal, err.Error())
 	// }
 
+	// log.Printf("[PUT DEPLOYMENT] New revision: %v", newRevision)
+
 	// err = u.revisionRepo.Put(*newRevision)
 	// if err != nil {
 	// 	return nil, status.Error(codes.Internal, err.Error())

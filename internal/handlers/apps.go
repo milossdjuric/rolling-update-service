@@ -55,36 +55,118 @@ func (u *UpdateServiceGrpcHandler) StopAppsIndirect(appCount int, apps []domain.
 		return fmt.Errorf("no nodes available")
 	}
 
-	appsToDelete := make([]domain.App, 0)
-	log.Printf("[STOP APPS INDIRECT] Stopping apps: %v", len(appsToDelete))
+	log.Printf("[STOP APPS DIRECT] OrgId: %s, Namespace: %s, NodeIds: %v", orgId, namespace, nodeIds)
 
-	errChan := make(chan error, len(appsToDelete))
+	appsToDelete := make([]domain.App, 0)
+	if appCount >= len(apps) {
+		appsToDelete = append(appsToDelete, apps...)
+	} else {
+		appsToDelete = append(appsToDelete, apps[len(apps)-appCount:]...)
+	}
+	log.Printf("[STOP APPS INDIRECT] Stopping %d apps", len(appsToDelete))
+
 	var waitGroup sync.WaitGroup
+	var mu sync.Mutex
+	deletedApps := 0
+	errChan := make(chan error, len(appsToDelete)*len(nodeIds))
+
 	waitGroup.Add(len(appsToDelete) * len(nodeIds))
 	for _, app := range appsToDelete {
 		for _, nodeId := range nodeIds {
-			go func(targetApp domain.App) {
+			log.Printf("[STOP APPS INDIRECT] Before go func()")
+			go func(targetApp domain.App, nodeId string) {
 				defer waitGroup.Done()
-				if err := fn(targetApp.Name, orgId, namespace, nodeId); err != nil {
-					errChan <- err
-				}
-			}(app)
-		}
-	}
-	waitGroup.Wait()
 
-	deletedApps := 0
-	for err := range errChan {
-		if err == nil {
-			deletedApps++
-		}
-		if deletedApps >= appCount {
-			return nil
+				for !u.rateLimiter.Allow() {
+					time.Sleep(5 * time.Millisecond)
+				}
+
+				stopAppArgs := PrepareAppOperationArgs(orgId, namespace, nodeId)
+				log.Printf("[STOP APPS INDIRECT] Stop app args: %v", stopAppArgs)
+				err := fn(targetApp.Name, stopAppArgs...)
+				if err != nil {
+					log.Printf("[STOP APPS INDIRECT] Error stopping app: %v", err)
+					errChan <- err
+					return
+				}
+
+				// Count only one successful stop per app
+				mu.Lock()
+				if deletedApps < appCount {
+					deletedApps++
+				}
+				mu.Unlock()
+			}(app, nodeId)
 		}
 	}
-	log.Printf("[STOP APPS INDIRECT] Failed to stop %d apps", appCount)
+
+	// Wait for all stop attempts
+	waitGroup.Wait()
+	close(errChan)
+	log.Printf("[STOP APPS INDIRECT] Waiting for all apps to stop")
+
+	if deletedApps >= appCount {
+		log.Printf("[STOP APPS INDIRECT] Successfully stopped %d apps", deletedApps)
+		return nil
+	}
+
+	log.Printf("[STOP APPS INDIRECT] Failed to stop enough apps, stopped only %d of %d", deletedApps, appCount)
 	return fmt.Errorf("failed to stop %d apps", appCount)
 }
+
+// func (u *UpdateServiceGrpcHandler) StopAppsIndirect(appCount int, apps []domain.App, fn func(name string, extraArgs ...string) error, extraArgs ...string) error {
+// 	if len(extraArgs) < 2 {
+// 		log.Printf("[STOP APPS INDIRECT] Not enough extra args")
+// 		return fmt.Errorf("not enough extra args")
+// 	}
+
+// 	orgId, namespace := extraArgs[0], extraArgs[1]
+// 	nodeIds := extraArgs[2:]
+// 	if len(nodeIds) == 0 {
+// 		log.Printf("[STOP APPS INDIRECT] No nodes available")
+// 		return fmt.Errorf("no nodes available")
+// 	}
+
+// 	appsToDelete := make([]domain.App, 0)
+// 	if appCount >= len(apps) {
+// 		appsToDelete = append(appsToDelete, apps...)
+// 	} else {
+// 		appsToDelete = append(appsToDelete, apps[len(apps)-appCount:]...)
+// 	}
+// 	log.Printf("[STOP APPS INDIRECT] Stopping apps: %v", len(appsToDelete))
+
+// 	errChan := make(chan error, len(appsToDelete))
+// 	var waitGroup sync.WaitGroup
+// 	// waitGroup.Add(len(appsToDelete) * len(nodeIds))
+// 	waitGroup.Add(len(appsToDelete))
+// 	for _, app := range appsToDelete {
+// 		for _, nodeId := range nodeIds {
+// 			go func(targetApp domain.App) {
+// 				defer waitGroup.Done()
+// 				if err := fn(targetApp.Name, orgId, namespace, nodeId); err != nil {
+// 					errChan <- err
+// 				}
+// 			}(app)
+// 		}
+// 	}
+// 	waitGroup.Wait()
+
+// 	log.Printf("[STOP APPS INDIRECT] Waiting for all apps to stop")
+
+// 	deletedApps := 0
+// 	for err := range errChan {
+// 		if err == nil {
+// 			deletedApps++
+// 		}
+// 		if deletedApps >= appCount {
+// 			return nil
+// 		}
+// 	}
+// 	log.Printf("[STOP APPS INDIRECT] Stopped %d apps", deletedApps)
+
+// 	log.Printf("[STOP APPS INDIRECT] Failed to stop %d apps", appCount)
+// 	return fmt.Errorf("failed to stop %d apps", appCount)
+// }
 
 func (u *UpdateServiceGrpcHandler) StopAppsDirect(appCount int, apps []domain.App, fn func(name string, extraArgs ...string) error, extraArgs ...string) error {
 	appsToDelete := make([]domain.App, 0)
