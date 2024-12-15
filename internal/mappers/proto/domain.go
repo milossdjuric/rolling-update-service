@@ -102,6 +102,7 @@ func DeploymentSpecToDomain(deploymentSpec *api.DeploymentSpec) (domain.Deployme
 		DeadlineExceeded:  deploymentSpec.DeadlineExceeded,
 		AutomaticRollback: deploymentSpec.AutomaticRollback,
 		Mode:              domain.DeploymentMode(deploymentSpec.Mode),
+		ReconcilePeriod:   &deploymentSpec.ReconcilePeriod,
 	}
 
 	return resp, nil
@@ -155,6 +156,7 @@ func DeploymentSpecFromDomain(deploymentSpec domain.DeploymentSpec) (*api.Deploy
 		DeadlineExceeded:  deploymentSpec.DeadlineExceeded,
 		AutomaticRollback: deploymentSpec.AutomaticRollback,
 		Mode:              string(deploymentSpec.Mode),
+		ReconcilePeriod:   *deploymentSpec.ReconcilePeriod,
 	}
 
 	return resp, nil

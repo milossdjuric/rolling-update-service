@@ -26,6 +26,7 @@ message DeploymentSpec {
     int64 deadlineExceeded = 8;
     bool automaticRollback = 9;
     string mode = 10;
+    int64 reconcilePeriod = 11;
 }
 
 message DeploymentStatus {

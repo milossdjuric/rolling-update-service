@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -31,6 +32,7 @@ func (u *UpdateServiceGrpcHandler) StartDockerContainer(revisionName string, sel
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	//implement simple contaienr with forever running sleep command
 	containerConfig := &container.Config{
 		Image:  "alpine:latest",
 		Cmd:    []string{"sh", "-c", "while true; do sleep 1000; done"},
@@ -53,7 +55,7 @@ func (u *UpdateServiceGrpcHandler) StartDockerContainer(revisionName string, sel
 
 func (u *UpdateServiceGrpcHandler) StopDockerContainer(name string, extraArgs ...string) error {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	if err := u.dockerClient.ContainerStop(ctx, name, container.StopOptions{}); err != nil {
@@ -95,8 +97,14 @@ func (u *UpdateServiceGrpcHandler) QueryDockerContainer(prefix string, selectorL
 
 	apps := make([]domain.App, 0)
 	for _, container := range containers {
-		apps = append(apps, domain.App{Name: container.Names[0], SelectorLabels: container.Labels})
-		log.Printf("App: %v", apps[len(apps)-1].Name)
+		// when docker container is created, it is named as /containerName
+		beforeContainerName, containerName, _ := strings.Cut(container.Names[0], "/")
+		if containerName == "" {
+			containerName = beforeContainerName
+		}
+
+		apps = append(apps, domain.App{Name: containerName, SelectorLabels: container.Labels})
+		// log.Printf("App: %v", apps[len(apps)-1].Name)
 	}
 
 	return apps, nil
@@ -149,6 +157,167 @@ func (u *UpdateServiceGrpcHandler) AvailabilityCheckDockerContainer(name string,
 
 	// log.Printf("Container %s is not available", name)
 	return false, nil
+}
+
+func (u *UpdateServiceGrpcHandler) QueryDockerHealthyContainer(prefix string, selectorLabels map[string]string, extraArgs ...string) ([]domain.App, error) {
+
+	// log.Println("Querying container for prefix:", prefix)
+	// log.Println("Querying container for selector labels:", selectorLabels)
+
+	keyValues := make([]filters.KeyValuePair, 0)
+	keyValues = append(keyValues, filters.KeyValuePair{Key: "label", Value: "revision=" + prefix})
+	for key, value := range selectorLabels {
+		keyValue := key + "=" + value
+		keyValues = append(keyValues, filters.KeyValuePair{Key: "label", Value: keyValue})
+	}
+	args := filters.NewArgs(keyValues...)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	containers, err := u.dockerClient.ContainerList(ctx, container.ListOptions{Filters: args})
+	if err != nil {
+		log.Printf("Failed to list containers: %v", err)
+		return nil, err
+	}
+
+	apps := make([]domain.App, 0)
+	for _, container := range containers {
+		// when docker container is created, it is named as /containerName
+		beforeContainerName, containerName, _ := strings.Cut(container.Names[0], "/")
+		if containerName == "" {
+			containerName = beforeContainerName
+		}
+
+		containerInfo, err := u.dockerClient.ContainerInspect(ctx, containerName)
+		if err != nil {
+			log.Printf("Failed to inspect container: %v", err)
+			continue
+		}
+
+		if !containerInfo.State.Running {
+			log.Printf("Container %s is not running", containerName)
+			continue
+		}
+		apps = append(apps, domain.App{Name: containerName, SelectorLabels: container.Labels})
+		// log.Printf("App: %v", apps[len(apps)-1].Name)
+	}
+
+	return apps, nil
+}
+
+func (u *UpdateServiceGrpcHandler) QueryDockerAvailableContainer(prefix string, minReadySeconds int64, selectorLabels map[string]string, extraArgs ...string) ([]domain.App, error) {
+
+	// log.Println("Querying container for prefix:", prefix)
+	// log.Println("Querying container for selector labels:", selectorLabels)
+
+	keyValues := make([]filters.KeyValuePair, 0)
+	keyValues = append(keyValues, filters.KeyValuePair{Key: "label", Value: "revision=" + prefix})
+	for key, value := range selectorLabels {
+		keyValue := key + "=" + value
+		keyValues = append(keyValues, filters.KeyValuePair{Key: "label", Value: keyValue})
+	}
+	args := filters.NewArgs(keyValues...)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	containers, err := u.dockerClient.ContainerList(ctx, container.ListOptions{Filters: args})
+	if err != nil {
+		log.Printf("Failed to list containers: %v", err)
+		return nil, err
+	}
+
+	apps := make([]domain.App, 0)
+	for _, container := range containers {
+		// when docker container is created, it is named as /containerName
+		beforeContainerName, containerName, _ := strings.Cut(container.Names[0], "/")
+		if containerName == "" {
+			containerName = beforeContainerName
+		}
+
+		containerInfo, err := u.dockerClient.ContainerInspect(ctx, containerName)
+		if err != nil {
+			log.Printf("Failed to inspect container: %v", err)
+			continue
+		}
+
+		if containerInfo.State.Running {
+			startedAt := containerInfo.State.StartedAt
+			startTime, err := time.Parse(time.RFC3339Nano, startedAt)
+			if err != nil {
+				log.Printf("Failed to parse time: %v", err)
+				continue
+			}
+
+			if time.Since(startTime).Seconds() >= float64(minReadySeconds) {
+				// log.Printf("Container %s is available", name)
+				apps = append(apps, domain.App{Name: containerName, SelectorLabels: container.Labels})
+			}
+		}
+		// log.Printf("App: %v", apps[len(apps)-1].Name)
+	}
+
+	return apps, nil
+}
+
+func (u *UpdateServiceGrpcHandler) QueryDockerAllContainer(prefix string, minReadySeconds int64, selectorLabels map[string]string, extraArgs ...string) ([]domain.App, []domain.App, []domain.App, error) {
+
+	// log.Println("Querying container for prefix:", prefix)
+	// log.Println("Querying container for selector labels:", selectorLabels)
+
+	keyValues := make([]filters.KeyValuePair, 0)
+	keyValues = append(keyValues, filters.KeyValuePair{Key: "label", Value: "revision=" + prefix})
+	for key, value := range selectorLabels {
+		keyValue := key + "=" + value
+		keyValues = append(keyValues, filters.KeyValuePair{Key: "label", Value: keyValue})
+	}
+	args := filters.NewArgs(keyValues...)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	containers, err := u.dockerClient.ContainerList(ctx, container.ListOptions{Filters: args})
+	if err != nil {
+		log.Printf("Failed to list containers: %v", err)
+		return nil, nil, nil, err
+	}
+
+	totalApps := make([]domain.App, 0)
+	readyApps := make([]domain.App, 0)
+	availableApps := make([]domain.App, 0)
+	for _, container := range containers {
+		beforeContainerName, containerName, _ := strings.Cut(container.Names[0], "/")
+		if containerName == "" {
+			containerName = beforeContainerName
+		}
+
+		containerInfo, err := u.dockerClient.ContainerInspect(ctx, containerName)
+		if err != nil {
+			log.Printf("Failed to inspect container: %v", err)
+			return nil, nil, nil, err
+		} else {
+			totalApps = append(totalApps, domain.App{Name: containerName, SelectorLabels: container.Labels})
+
+			if containerInfo.State.Running {
+				readyApps = append(readyApps, domain.App{Name: containerName, SelectorLabels: container.Labels})
+
+				startedAt := containerInfo.State.StartedAt
+				startTime, err := time.Parse(time.RFC3339Nano, startedAt)
+				if err != nil {
+					log.Printf("Failed to parse time: %v", err)
+				} else {
+					if time.Since(startTime).Seconds() >= float64(minReadySeconds) {
+						availableApps = append(availableApps, domain.App{Name: containerName, SelectorLabels: container.Labels})
+						log.Printf("Container %s is available", containerName)
+					} else {
+						// log.Printf("Container %s is not available", containerName)
+					}
+				}
+			}
+		}
+	}
+	return totalApps, readyApps, availableApps, nil
 }
 
 func (u *UpdateServiceGrpcHandler) StartNodeContainer(revisionName string, selectorLabels map[string]string, extraArgs ...string) error {
@@ -212,7 +381,7 @@ func (u *UpdateServiceGrpcHandler) StartNodeContainer(revisionName string, selec
 		if len(resp.ErrorMessages) > 0 {
 			errorMessages := ""
 			for _, errorMsg := range resp.ErrorMessages {
-				errorMessages += "|" + errorMsg
+				errorMessages += " | " + errorMsg
 			}
 			return fmt.Errorf("response error messages: %v", errorMessages)
 		}
@@ -235,6 +404,8 @@ func (u *UpdateServiceGrpcHandler) StopNodeContainer(name string, extraArgs ...s
 		return fmt.Errorf("not enough arguments for stopping node container")
 	}
 	orgId, namespace, nodeId := extraArgs[0], extraArgs[1], extraArgs[2]
+	log.Printf("Stop node container args: %s, %s, %s", orgId, namespace, nodeId)
+	log.Printf("Stop node container name: %s", name)
 
 	cmd := api.ApplyAppOperationCommand{
 		OrgId:           orgId,
@@ -270,7 +441,7 @@ func (u *UpdateServiceGrpcHandler) StopNodeContainer(name string, extraArgs ...s
 	}
 	defer close(respChan)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	select {
 	case msg := <-respChan:
@@ -283,8 +454,9 @@ func (u *UpdateServiceGrpcHandler) StopNodeContainer(name string, extraArgs ...s
 		if len(resp.ErrorMessages) > 0 {
 			errorMessages := ""
 			for _, errorMsg := range resp.ErrorMessages {
-				errorMessages += "|" + errorMsg
+				errorMessages += " | " + errorMsg
 			}
+			log.Printf("Response error messages: %v", errorMessages)
 			return fmt.Errorf("response error messages: %v", errorMessages)
 		}
 		if resp.Success {
@@ -352,7 +524,7 @@ func (u *UpdateServiceGrpcHandler) QueryNodeContainers(prefix string, selectorLa
 		if len(resp.ErrorMessages) > 0 {
 			errorMessages := ""
 			for _, errorMsg := range resp.ErrorMessages {
-				errorMessages += "|" + errorMsg
+				errorMessages += " | " + errorMsg
 			}
 			return nil, fmt.Errorf("response error messages: %v", errorMessages)
 		}
@@ -422,7 +594,7 @@ func (u *UpdateServiceGrpcHandler) HealthCheckNodeContainer(name string, extraAr
 		if len(resp.ErrorMessages) > 0 {
 			errorMessages := ""
 			for _, errorMsg := range resp.ErrorMessages {
-				errorMessages += "|" + errorMsg
+				errorMessages += " | " + errorMsg
 			}
 			return false, fmt.Errorf("response error messages: %v", errorMessages)
 		}
@@ -433,6 +605,7 @@ func (u *UpdateServiceGrpcHandler) HealthCheckNodeContainer(name string, extraAr
 			return false, fmt.Errorf("node container failed to healthcheck, reason unknown")
 		}
 	case <-ctx.Done():
+		log.Println("Timeout while waiting for node container to healthcheck", nodeId, name)
 		return false, fmt.Errorf("timeout while waiting for node container to healthcheck")
 	}
 }
@@ -486,7 +659,7 @@ func (u *UpdateServiceGrpcHandler) AvailabilityCheckNodeContainer(name string, m
 		if len(resp.ErrorMessages) > 0 {
 			errorMessages := ""
 			for _, errorMsg := range resp.ErrorMessages {
-				errorMessages += "|" + errorMsg
+				errorMessages += " | " + errorMsg
 			}
 			return false, fmt.Errorf("response error messages: %v", errorMessages)
 		}
@@ -496,6 +669,225 @@ func (u *UpdateServiceGrpcHandler) AvailabilityCheckNodeContainer(name string, m
 			return false, fmt.Errorf("node container failed to  availability check, reason unknown")
 		}
 	case <-ctx.Done():
+		log.Println("Timeout while waiting for node container to availability check", nodeId, name)
 		return false, fmt.Errorf("timeout while waiting for node container to  availability check")
+	}
+}
+
+func (u *UpdateServiceGrpcHandler) QueryNodeHealthyContainer(prefix string, selectorLabels map[string]string, extraArgs ...string) ([]domain.App, error) {
+	// log.Println("Querying container for prefix:", prefix)
+	// log.Println("Querying container for selector labels:", selectorLabels)
+
+	if len(extraArgs) < 3 {
+		return nil, fmt.Errorf("not enough arguments for stopping node container")
+	}
+	orgId, namespace, nodeId := extraArgs[0], extraArgs[1], extraArgs[2]
+
+	cmd := api.ApplyAppOperationCommand{
+		OrgId:           orgId,
+		Namespace:       namespace,
+		Name:            prefix,
+		Operation:       "query_healthy",
+		SelectorLabels:  selectorLabels,
+		MinReadySeconds: 0,
+	}
+	data, err := proto.Marshal(&cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	err = u.natsConn.Publish(api.Subject(nodeId), data)
+	if err != nil {
+		return nil, err
+	}
+	sub, err := nats.NewSubscriber(u.natsConn, nodeId+".app_operation.query_healthy_app."+prefix, "")
+	if err != nil {
+		return nil, err
+	}
+	defer sub.Unsubscribe()
+
+	respChan := make(chan *natsgo.Msg, 1)
+	err = sub.ChannelSubscribe(respChan)
+	if err != nil {
+		return nil, err
+	}
+	defer close(respChan)
+
+	apps := make([]domain.App, 0)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	select {
+	case msg := <-respChan:
+		var resp api.QueryAppResp
+		if err := proto.Unmarshal(msg.Data, &resp); err != nil {
+			return nil, err
+		}
+		//writing down error messages by | separator
+		if len(resp.ErrorMessages) > 0 {
+			errorMessages := ""
+			for _, errorMsg := range resp.ErrorMessages {
+				errorMessages += " | " + errorMsg
+			}
+			return nil, fmt.Errorf("response error messages: %v", errorMessages)
+		}
+		if resp.Success {
+			// log.Printf("Node agent queried: %s, %s", nodeId, prefix)
+			for _, app := range resp.Apps {
+				apps = append(apps, domain.App{Name: app.Name, SelectorLabels: app.SelectorLabels})
+			}
+			return apps, nil
+		} else {
+			return nil, fmt.Errorf("node container failed to query, reason unknown")
+		}
+	case <-ctx.Done():
+		return nil, fmt.Errorf("timeout while waiting for node agent to query")
+	}
+}
+
+func (u *UpdateServiceGrpcHandler) QueryNodeAvailableContainer(prefix string, minReadySeconds int64, selectorLabels map[string]string, extraArgs ...string) ([]domain.App, error) {
+	// log.Println("Querying container for prefix:", prefix)
+	// log.Println("Querying container for selector labels:", selectorLabels)
+
+	if len(extraArgs) < 3 {
+		return nil, fmt.Errorf("not enough arguments for stopping node container")
+	}
+	orgId, namespace, nodeId := extraArgs[0], extraArgs[1], extraArgs[2]
+
+	cmd := api.ApplyAppOperationCommand{
+		OrgId:           orgId,
+		Namespace:       namespace,
+		Name:            prefix,
+		Operation:       "query_available",
+		SelectorLabels:  selectorLabels,
+		MinReadySeconds: minReadySeconds,
+	}
+	data, err := proto.Marshal(&cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	err = u.natsConn.Publish(api.Subject(nodeId), data)
+	if err != nil {
+		return nil, err
+	}
+	sub, err := nats.NewSubscriber(u.natsConn, nodeId+".app_operation.query_available_app."+prefix, "")
+	if err != nil {
+		return nil, err
+	}
+	defer sub.Unsubscribe()
+
+	respChan := make(chan *natsgo.Msg, 1)
+	err = sub.ChannelSubscribe(respChan)
+	if err != nil {
+		return nil, err
+	}
+	defer close(respChan)
+
+	apps := make([]domain.App, 0)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	select {
+	case msg := <-respChan:
+		var resp api.QueryAppResp
+		if err := proto.Unmarshal(msg.Data, &resp); err != nil {
+			return nil, err
+		}
+		//writing down error messages by | separator
+		if len(resp.ErrorMessages) > 0 {
+			errorMessages := ""
+			for _, errorMsg := range resp.ErrorMessages {
+				errorMessages += " | " + errorMsg
+			}
+			return nil, fmt.Errorf("response error messages: %v", errorMessages)
+		}
+		if resp.Success {
+			// log.Printf("Node agent queried: %s, %s", nodeId, prefix)
+			for _, app := range resp.Apps {
+				apps = append(apps, domain.App{Name: app.Name, SelectorLabels: app.SelectorLabels})
+			}
+			return apps, nil
+		} else {
+			return nil, fmt.Errorf("node container failed to query, reason unknown")
+		}
+	case <-ctx.Done():
+		return nil, fmt.Errorf("timeout while waiting for node agent to query")
+	}
+}
+
+func (u *UpdateServiceGrpcHandler) QueryNodeAllContainer(prefix string, minReadySeconds int64, selectorLabels map[string]string, extraArgs ...string) ([]domain.App, []domain.App, []domain.App, error) {
+	// log.Println("Querying container for prefix:", prefix)
+	// log.Println("Querying container for selector labels:", selectorLabels)
+
+	if len(extraArgs) < 3 {
+		return nil, nil, nil, fmt.Errorf("not enough arguments for stopping node container")
+	}
+	orgId, namespace, nodeId := extraArgs[0], extraArgs[1], extraArgs[2]
+
+	cmd := api.ApplyAppOperationCommand{
+		OrgId:           orgId,
+		Namespace:       namespace,
+		Name:            prefix,
+		Operation:       "query_all",
+		SelectorLabels:  selectorLabels,
+		MinReadySeconds: minReadySeconds,
+	}
+	data, err := proto.Marshal(&cmd)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = u.natsConn.Publish(api.Subject(nodeId), data)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	sub, err := nats.NewSubscriber(u.natsConn, nodeId+".app_operation.query_all_app."+prefix, "")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer sub.Unsubscribe()
+
+	respChan := make(chan *natsgo.Msg, 1)
+	err = sub.ChannelSubscribe(respChan)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer close(respChan)
+
+	totalApps := make([]domain.App, 0)
+	readyApps := make([]domain.App, 0)
+	availableApps := make([]domain.App, 0)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	select {
+	case msg := <-respChan:
+		var resp api.QueryAllAppResp
+		if err := proto.Unmarshal(msg.Data, &resp); err != nil {
+			return nil, nil, nil, err
+		}
+		//writing down error messages by | separator
+		if len(resp.ErrorMessages) > 0 {
+			errorMessages := ""
+			for _, errorMsg := range resp.ErrorMessages {
+				errorMessages += " | " + errorMsg
+			}
+			return nil, nil, nil, fmt.Errorf("response error messages: %v", errorMessages)
+		}
+		if resp.Success {
+			// log.Printf("Node agent queried: %s, %s", nodeId, prefix)
+			for _, app := range resp.TotalApps {
+				totalApps = append(totalApps, domain.App{Name: app.Name, SelectorLabels: app.SelectorLabels})
+			}
+			for _, app := range resp.ReadyApps {
+				readyApps = append(readyApps, domain.App{Name: app.Name, SelectorLabels: app.SelectorLabels})
+			}
+			for _, app := range resp.AvailableApps {
+				availableApps = append(availableApps, domain.App{Name: app.Name, SelectorLabels: app.SelectorLabels})
+			}
+			return totalApps, readyApps, availableApps, nil
+		} else {
+			return nil, nil, nil, fmt.Errorf("node container failed to query, reason unknown")
+		}
+	case <-ctx.Done():
+		return nil, nil, nil, fmt.Errorf("timeout while waiting for node agent to query")
 	}
 }

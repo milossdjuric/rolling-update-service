@@ -26,6 +26,7 @@ type DeploymentSpec struct {
 	DeadlineExceeded  int64
 	AutomaticRollback bool
 	Mode              DeploymentMode
+	ReconcilePeriod   *int64
 }
 
 type DeploymentRepo interface {
@@ -110,13 +111,20 @@ func NewDeployment(name string, namespace string, orgId string, labels map[strin
 	}
 }
 
-func NewDeploymentSpec(selectorLabels map[string]string, appCount int64, revisionLimit *int64, strategy DeploymentStrategy, appSpec AppSpec, minReadySeconds int64, deadlineExceeded int64, automaticRollback bool, mode DeploymentMode) DeploymentSpec {
+func NewDeploymentSpec(selectorLabels map[string]string, appCount int64, revisionLimit *int64, strategy DeploymentStrategy, appSpec AppSpec, minReadySeconds int64, deadlineExceeded int64, automaticRollback bool, mode DeploymentMode, reconcilePeriod *int64) DeploymentSpec {
 
 	calculatedQuotas := utils.CalculateResourceQuotas(appCount, appSpec.Quotas)
 
+	// if revision limit is not set, set it to 10
 	if revisionLimit == nil {
 		revisionLimit = new(int64)
 		*revisionLimit = 10
+	}
+
+	// if reconcile period is not set, set it to 30 seconds
+	if reconcilePeriod == nil {
+		reconcilePeriod = new(int64)
+		*reconcilePeriod = 30
 	}
 
 	return DeploymentSpec{
@@ -130,6 +138,7 @@ func NewDeploymentSpec(selectorLabels map[string]string, appCount int64, revisio
 		DeadlineExceeded:  deadlineExceeded,
 		AutomaticRollback: automaticRollback,
 		Mode:              mode,
+		ReconcilePeriod:   reconcilePeriod,
 	}
 }
 

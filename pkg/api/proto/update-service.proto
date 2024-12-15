@@ -40,6 +40,7 @@ message PutDeploymentReq {
         int64 deadlineExceeded = 7;
         optional bool automaticRollback = 8;
         string mode = 9;
+        optional int64 reconcilePeriod = 10;
     }
     Spec spec = 5;
 }
@@ -143,6 +144,14 @@ message AvailabilityCheckAppResp{
   bool success = 1;
   repeated string errorMessages = 2;
   bool available = 3;
+}
+
+message QueryAllAppResp{
+    bool success = 1;
+    repeated string errorMessages = 2;
+    repeated App totalApps = 3;
+    repeated App readyApps = 4;
+    repeated App availableApps = 5;
 }
 
 message WorkerTask{
