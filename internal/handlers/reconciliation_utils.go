@@ -54,10 +54,14 @@ func (u *UpdateServiceGrpcHandler) SaveDeployment(d *domain.Deployment) error {
 	return u.deploymentRepo.Put(*d)
 }
 
+func (u *UpdateServiceGrpcHandler) SaveRevision(r *domain.Revision) error {
+	return u.revisionRepo.Put(*r)
+}
+
 // check if context is interrupted, if so returns bool on which it stops the Reconcile() method
-func IsContextInterrupted(ctx context.Context) bool {
+func IsReconcileInterrupted(interruptChan chan struct{}) bool {
 	select {
-	case <-ctx.Done():
+	case <-interruptChan:
 		return true
 	default:
 		return false

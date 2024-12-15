@@ -11,10 +11,11 @@ import (
 	"github.com/milossdjuric/rolling_update_service/internal/utils"
 )
 
-func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Deployment, stopChan chan struct{}) {
+func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Deployment, stopChan chan struct{}, interruptChan chan struct{}) {
 
-	//check if context for gorotine is interrupted
-	if IsContextInterrupted(ctx) {
+	//check if reconciliation is interrupted by interrupChan
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
@@ -26,13 +27,16 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		return
 	}
 
-	if IsContextInterrupted(ctx) {
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
 	// if there was no new revision, now put it
-	err = u.revisionRepo.Put(*newRevision)
+	log.Printf("DEPLOYMENT %s: Saving new revision: %s...", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), newRevision.Name)
+	err = u.SaveRevision(newRevision)
 	if err != nil {
+		log.Printf("DEPLOYMENT %s: Failed to save new revision: %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), err)
 		return
 	}
 
@@ -40,7 +44,8 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 
 	log.Printf("DEPLOYMENT %s: New revision: %s", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), newRevision.Name)
 
-	if IsContextInterrupted(ctx) {
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
@@ -56,7 +61,8 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		nodeIds = append(nodeIds, node.Id)
 	}
 
-	if IsContextInterrupted(ctx) {
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
@@ -88,7 +94,8 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 	d.Status.AvailableAppCount = int64(len(availableApps))
 	d.Status.UnavailableAppCount = d.Status.TotalAppCount - d.Status.AvailableAppCount
 
-	if IsContextInterrupted(ctx) {
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
@@ -103,7 +110,8 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 	// log.Printf("Active revisions: %v, Active revisions app count: %v", activeRevisions, activeRevisionsAppCount)
 	// log.Printf("New revison app count: %v", activeRevisionsAppCount[newRevision.Name])
 
-	if IsContextInterrupted(ctx) {
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
@@ -163,7 +171,8 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		return
 	}
 
-	if IsContextInterrupted(ctx) {
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
@@ -179,21 +188,27 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 	log.Printf("DEPLOYMENT %s: Deployment status states: Progress - %v, Available - %v, Failure - %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), d.Status.States[domain.DeploymentProgress].Active, d.Status.States[domain.DeploymentAvailable].Active, d.Status.States[domain.DeploymentFailure].Active)
 	log.Printf("DEPLOYMENT %s: Deployment status states messages: Progress - %v, Available - %v, Failure - %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), d.Status.States[domain.DeploymentProgress].Message, d.Status.States[domain.DeploymentAvailable].Message, d.Status.States[domain.DeploymentFailure].Message)
 
-	if IsContextInterrupted(ctx) {
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
 	// if deployment flag for automatic rollback is set and deployment failed, it rolls back
 	// to previous revision automatically, if there is no previous revision, its stuck in this revision
+	// if its not set, it just pauses the deployment and prevents further rolling
 	if d.Status.States[domain.DeploymentFailure].Active && d.Spec.AutomaticRollback {
 		log.Printf("DEPLOYMENT %s: Deployment failed, automatically rolling back", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		err := u.Rollback(d, "")
 		if err != nil {
 			log.Printf("DEPLOYMENT %s: Failed to rollback deployment: %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), err)
 		}
+	} else if d.Status.States[domain.DeploymentFailure].Active && !d.Spec.AutomaticRollback {
+		log.Printf("DEPLOYMENT %s: Deployment failed, automatic rollback is disabled, pausing deployment", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
+		d.Status.Paused = true
 	}
 
-	if IsContextInterrupted(ctx) {
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
@@ -202,6 +217,7 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		!d.Status.States[domain.DeploymentFailure].Active && !d.Status.Paused {
 		go func() {
 			log.Printf("DEPLOYMENT %s: Rolling deployment...", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
+
 			err := u.Roll(d, newRevision, oldRevisions, activeRevisions, activeRevisionsAppCount, totalApps, availableApps, nodeIds...)
 			if err != nil {
 				log.Printf("DEPLOYMENT %s: Error rolling deployment: %v", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), err)
@@ -211,7 +227,8 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 		}()
 	}
 
-	if IsContextInterrupted(ctx) {
+	if IsReconcileInterrupted(interruptChan) {
+		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
 	}
 
@@ -263,7 +280,6 @@ func GetNewRevision(d *domain.Deployment, revisions []domain.Revision) (*domain.
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate new revision: %v", err)
 	}
-	log.Printf("[GET NEW REVISION] Creating new revision for deployment %s - %s", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), newRevision.Name)
 
 	return &newRevision, nil
 }
@@ -335,7 +351,10 @@ func (u *UpdateServiceGrpcHandler) Rollback(d *domain.Deployment, revisionName s
 	rollbackRevision.Spec.AppSpec.SelectorLabels["revision"] = rollbackRevision.Name
 	rollbackRevision.CreationTimestamp = time.Now().Unix()
 
-	u.revisionRepo.Put(*rollbackRevision)
+	err = u.SaveRevision(rollbackRevision)
+	if err != nil {
+		return fmt.Errorf("failed to save rollback revision")
+	}
 
 	//set appSpec of deployment to that of rollback revision
 	d.Spec.AppSpec = rollbackRevision.Spec.AppSpec
@@ -441,10 +460,7 @@ func (u *UpdateServiceGrpcHandler) ReconcileOldRevisions(d *domain.Deployment, n
 	oldUnavailableApps := GetOldUnavailableApps(totalApps, availableApps, newRevision)
 
 	//Scale down unavailable/unhealthy old apps
-	stopAppsArgs := append(nodeIds, d.OrgId)
-	stopAppsArgs = append(stopAppsArgs, d.Namespace)
-
-	err = u.StopApps(d, int(maxScaledDown), oldUnavailableApps, stopAppsArgs...)
+	err = u.StopApps(d, int(maxScaledDown), oldUnavailableApps, nodeIds...)
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,7 @@ const (
 	TaskTypeUnpause  = "Unpause"
 	TaskTypeStop     = "Stop"
 	TaskTypeDelete   = "Delete"
-	TaskTypeAdd      = "Add"
+	TaskTypePut      = "Put"
 )
 
 type WorkerTask struct {

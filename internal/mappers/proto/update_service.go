@@ -76,6 +76,21 @@ func PutDeploymentReqToDomain(req *api.PutDeploymentReq) (domain.Deployment, err
 		req.Spec.Mode != string(domain.DirectDockerDaemon) {
 		return domain.Deployment{}, status.Error(codes.InvalidArgument, "Invalid deployment mode")
 	}
+	req.Spec.SelectorLabels["deployment"] = req.Name
+
+	if req.Spec.AppCount < 0 || req.Spec.MinReadySeconds < 0 || req.Spec.DeadlineExceeded < 0 {
+		return domain.Deployment{}, status.Error(codes.InvalidArgument, "Negative values are not allowed")
+	}
+	if req.Spec.RevisionLimit != nil {
+		if *req.Spec.RevisionLimit < 0 {
+			return domain.Deployment{}, status.Error(codes.InvalidArgument, "Negative values are not allowed")
+		}
+	}
+	if req.Spec.ReconcilePeriod != nil {
+		if *req.Spec.ReconcilePeriod < 0 {
+			return domain.Deployment{}, status.Error(codes.InvalidArgument, "Negative values are not allowed")
+		}
+	}
 
 	deploymentSpec := domain.NewDeploymentSpec(
 		req.Spec.SelectorLabels,
@@ -93,6 +108,7 @@ func PutDeploymentReqToDomain(req *api.PutDeploymentReq) (domain.Deployment, err
 		req.Spec.DeadlineExceeded,
 		automaticRollback,
 		domain.DeploymentMode(req.Spec.Mode),
+		req.Spec.ReconcilePeriod,
 	)
 
 	deploymentStatus := domain.NewDeploymentStatus()

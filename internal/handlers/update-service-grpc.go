@@ -49,17 +49,6 @@ func (u UpdateServiceGrpcHandler) PutDeployment(ctx context.Context, req *api.Pu
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	// get the new revision, if it exists
-	// newRevision, _, err := u.GetNewAndOldRevisions(&deployment)
-	// if err != nil {
-	// 	return nil, status.Error(codes.Internal, err.Error())
-	// }
-
-	// err = u.revisionRepo.Put(*newRevision)
-	// if err != nil {
-	// 	return nil, status.Error(codes.Internal, err.Error())
-	// }
-
 	// check if deployment already exists in etcd, if it does, assign existing status, still change spec and labels
 	existingDeployment, err := u.deploymentRepo.Get(deployment.Name, deployment.Namespace, deployment.OrgId)
 	if err == nil && existingDeployment != nil {
@@ -88,7 +77,7 @@ func (u UpdateServiceGrpcHandler) PutDeployment(ctx context.Context, req *api.Pu
 		payload := map[string]interface{}{
 			"Deployment": protoDeployment,
 		}
-		task := worker.NewWorkerTask(worker.TaskTypeAdd, deployment.Name, deployment.Namespace, deployment.OrgId, payload)
+		task := worker.NewWorkerTask(worker.TaskTypePut, deployment.Name, deployment.Namespace, deployment.OrgId, payload)
 		resp, err := u.SendTaskAndSubscribe(ctx, task)
 		if err != nil {
 			return nil, err
@@ -101,7 +90,7 @@ func (u UpdateServiceGrpcHandler) PutDeployment(ctx context.Context, req *api.Pu
 	// start worker to loop the deployment, if worker already exists, it will be ignored and returned
 	go u.StartWorker(&deployment)
 
-	log.Printf("Deployment %s added successfully", deployment.Name)
+	log.Printf("DEPLYOMENT %s: added successfully", fmt.Sprintf("%s/%s/%s", deployment.OrgId, deployment.Namespace, deployment.Name))
 
 	return &api.PutDeploymentResp{}, nil
 }
@@ -257,7 +246,7 @@ func (u UpdateServiceGrpcHandler) StopDeployment(ctx context.Context, req *api.S
 			return nil, utils.TaskResponseToGrpcError(resp)
 		}
 	} else {
-		fmt.Println("Worker not found, deployment is already not running")
+		fmt.Println("DEPLOYMENT %s: Worker not found, deployment is already not running", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 	}
 
 	return &api.StopDeploymentResp{}, nil
