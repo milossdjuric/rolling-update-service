@@ -53,19 +53,19 @@ func (u UpdateServiceGrpcHandler) StartWorker(d *domain.Deployment) {
 		return
 	}
 
-	// parent context is used for worker, when we stop worker it cancels helper goroutine
+	// parent context is used for worker, when we stop worker it cancels listener goroutine
 	parentCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	cooldownTimer := time.NewTimer(100 * time.Millisecond)
 
-	// helper goroutine, listens for messages, interrupts and cooldowns
+	//listener goroutine for work queue
 	go func() {
 		for {
 			select {
-			// if parent context is cancelled, stop helper goroutine
+			// if parent context is cancelled, stop listener goroutine
 			case <-parentCtx.Done():
-				log.Println("Parent context cancelled, stopping worker handler goroutine")
+				log.Printf("DEPLOYMENT %s: Parent context cancelled, stopping worker", topic)
 				return
 			// new task received, interrupt ongoing reconcile, start new one, use deployment from repo
 			case msg := <-msgChan:
@@ -80,8 +80,7 @@ func (u UpdateServiceGrpcHandler) StartWorker(d *domain.Deployment) {
 					continue
 				}
 				u.HandleMessage(updatedDeployment, msg)
-
-				// reset cooldown timer
+				//stop cooldownTimer, drain leftover messages from channel
 				if !cooldownTimer.Stop() {
 					select {
 					case <-cooldownTimer.C:
@@ -110,13 +109,13 @@ func (u UpdateServiceGrpcHandler) StartWorker(d *domain.Deployment) {
 		}
 	}()
 
+	//loop for reconciliation, technically this goroutine is a helper to listener goroutine
 	for {
 		select {
 		case <-stopChan:
 			log.Printf("DEPLOYMENT %s: Stopping worker for topic: %s", topic, topic)
 			return
 		case <-parentCtx.Done():
-			log.Println("DEPLOYMENT %s: Parent context cancelled, stopping worker", topic)
 			return
 		// receive reconcile signal, start new reconcile, also listen for new reconcile signal, if it arrives,
 		// cancel current context to stop Reconcile()

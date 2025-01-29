@@ -107,9 +107,6 @@ func (u *UpdateServiceGrpcHandler) Reconcile(ctx context.Context, d *domain.Depl
 	}
 	sort.Sort(sort.Reverse(domain.ByCreationTimestamp(activeRevisions)))
 
-	// log.Printf("Active revisions: %v, Active revisions app count: %v", activeRevisions, activeRevisionsAppCount)
-	// log.Printf("New revison app count: %v", activeRevisionsAppCount[newRevision.Name])
-
 	if IsReconcileInterrupted(interruptChan) {
 		log.Printf("DEPLOYMENT %s: Reconcile interrupted", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 		return
@@ -565,8 +562,10 @@ func UpdateStatusStates(d *domain.Deployment, availableNewRevisionAppCount int64
 
 	// if available app count is equal or grater to min available apps, deployment is available
 	if d.Status.AvailableAppCount >= d.Spec.AppCount-*d.Spec.Strategy.RollingUpdate.MaxUnavailable && d.Status.AvailableAppCount > 0 {
+
 		d.Status.States[domain.DeploymentAvailable] = domain.NewDeploymentState(domain.DeploymentAvailable, true, "Deployment available", d.Status.States[domain.DeploymentAvailable].LastUpdateTimestamp, time.Now().Unix())
 		log.Printf("DEPLOYMENT %s: Deployment is now available...", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
+
 		// if spec app, available and total app count are equal to new app count, deployment is completed
 		if d.Status.AvailableAppCount == availableNewRevisionAppCount && d.Status.TotalAppCount == availableNewRevisionAppCount && d.Spec.AppCount == availableNewRevisionAppCount {
 			d.Status.States[domain.DeploymentProgress] = domain.NewDeploymentState(domain.DeploymentProgress, false, "Deployment rollout completed", d.Status.States[domain.DeploymentProgress].LastUpdateTimestamp, time.Now().Unix())
@@ -582,10 +581,13 @@ func UpdateStatusStates(d *domain.Deployment, availableNewRevisionAppCount int64
 
 	if d.Status.States[domain.DeploymentProgress].Active {
 		log.Printf("DEPLOYMENT %s: Deployment is in progress...", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
+
 		// if progress is active, check if deadline is exceeded
 		if IsDeadlineExceeded(d, d.Status.States[domain.DeploymentProgress].LastUpdateTimestamp) && !d.Status.Paused {
+
 			log.Printf("DEPLOYMENT %s: Deployment deadline now exceeded...", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name))
 			d.Status.States[domain.DeploymentProgress] = domain.NewDeploymentState(domain.DeploymentProgress, false, "Deadline exceeded", d.Status.States[domain.DeploymentProgress].LastUpdateTimestamp, time.Now().Unix())
+
 			if d.Spec.AppCount == 0 {
 				// if deployment spec app count is 0, note in message
 				d.Status.States[domain.DeploymentProgress] = domain.NewDeploymentState(domain.DeploymentProgress, false, "Deadline exceeded, appCount is currently set to 0 in deployment spec", d.Status.States[domain.DeploymentProgress].LastUpdateTimestamp, time.Now().Unix())
