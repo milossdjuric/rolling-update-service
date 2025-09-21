@@ -366,7 +366,6 @@ func (u *UpdateServiceGrpcHandler) StartNodeContainer(revisionName string, selec
 		log.Printf("Failed to subscribe to channel: %v", err)
 		return err
 	}
-	defer close(respChan)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -439,7 +438,6 @@ func (u *UpdateServiceGrpcHandler) StopNodeContainer(name string, extraArgs ...s
 		log.Printf("Failed to subscribe to channel: %v", err)
 		return err
 	}
-	defer close(respChan)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -509,7 +507,6 @@ func (u *UpdateServiceGrpcHandler) QueryNodeContainers(prefix string, selectorLa
 	if err != nil {
 		return nil, err
 	}
-	defer close(respChan)
 
 	apps := make([]domain.App, 0)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -579,7 +576,6 @@ func (u *UpdateServiceGrpcHandler) HealthCheckNodeContainer(name string, extraAr
 	if err != nil {
 		return false, err
 	}
-	defer close(respChan)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -645,7 +641,6 @@ func (u *UpdateServiceGrpcHandler) AvailabilityCheckNodeContainer(name string, m
 	if err != nil {
 		return false, err
 	}
-	defer close(respChan)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -711,7 +706,6 @@ func (u *UpdateServiceGrpcHandler) QueryNodeHealthyContainer(prefix string, sele
 	if err != nil {
 		return nil, err
 	}
-	defer close(respChan)
 
 	apps := make([]domain.App, 0)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -781,7 +775,6 @@ func (u *UpdateServiceGrpcHandler) QueryNodeAvailableContainer(prefix string, mi
 	if err != nil {
 		return nil, err
 	}
-	defer close(respChan)
 
 	apps := make([]domain.App, 0)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -851,7 +844,6 @@ func (u *UpdateServiceGrpcHandler) QueryNodeAllContainer(prefix string, minReady
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	defer close(respChan)
 
 	totalApps := make([]domain.App, 0)
 	readyApps := make([]domain.App, 0)

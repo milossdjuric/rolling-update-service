@@ -198,7 +198,7 @@ func (u *UpdateServiceGrpcHandler) StopAppsIndirect(appCount int, apps []domain.
 	waitGroup.Wait()
 
 	if deletedApps >= appCount {
-		log.Printf("Successfully stopped %d apps", deletedApps)
+		// log.Printf("Successfully stopped %d apps", deletedApps)
 		return nil
 	}
 	return fmt.Errorf("failed to stop %d apps", appCount)

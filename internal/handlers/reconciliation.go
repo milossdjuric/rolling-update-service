@@ -479,7 +479,7 @@ func (u *UpdateServiceGrpcHandler) ReconcileOldRevisions(d *domain.Deployment, n
 		}
 
 		if activeRevisionsAppCount[revision.Name] == 0 {
-			log.Printf("DEPLOYMENT %s: Active revision app count is 0, revision: %s", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), revision.Name)
+			log.Printf("DEPLOYMENT %s: For this active revision app count is 0, revision: %s", fmt.Sprintf("%s/%s/%s", d.OrgId, d.Namespace, d.Name), revision.Name)
 			continue
 		}
 		// scale down count is number of apps to be scaled down

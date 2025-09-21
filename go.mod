@@ -3,6 +3,7 @@ module github.com/milossdjuric/rolling_update_service
 go 1.22.6
 
 require (
+	github.com/c12s/magnetar v0.0.0-20241101170422-31facf1b9480
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats.go v1.37.0
@@ -14,7 +15,6 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/c12s/magnetar v0.0.0-20241101170422-31facf1b9480 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
